@@ -486,6 +486,7 @@ function renderProdukte() {
     const barCls = pct < 0.3 ? 'bl' : pct < 0.5 ? 'bw' : '';
     const cardCls = pct < 0.3 ? 'pc-low' : pct < 0.5 ? 'pc-warn' : '';
 
+    const prods = prodsFor(name);
     // Ein Chip pro Gebindegröße × Lagerort wo Bestand > 0
     const chips = prods.flatMap(p =>
       ['Garage','Werkstatt'].map(lo => {
