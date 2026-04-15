@@ -371,8 +371,10 @@ const api = {
 // ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
-let produkte = [], bestaende = [], buchungen = [];
+let produkte = [], bestaende = [], buchungen = [], userKuerzel = [];
 let aktFilter = 'alle';
+let meinKuerzel = '';
+let meineUserId = null;
 
 // ══════════════════════════════════════════════════════════
 // INIT
@@ -380,11 +382,21 @@ let aktFilter = 'alle';
 async function init() {
   sync('syncing');
   try {
-    [produkte, bestaende, buchungen] = await Promise.all([
+    // User-ID aus Token lesen
+    try {
+      const payload = JSON.parse(atob(authToken.split('.')[1]));
+      meineUserId = payload.sub;
+    } catch(e) {}
+
+    [produkte, bestaende, buchungen, userKuerzel] = await Promise.all([
       api.get('lager_produkte','order=name.asc,gebinde_kg.desc'),
       api.get('lager_bestand','order=lagerort.asc'),
-      api.get('lager_buchungen','order=erstellt_am.desc&limit=150')
+      api.get('lager_buchungen','order=erstellt_am.desc&limit=150'),
+      api.get('lager_user_kuerzel','order=kuerzel.asc')
     ]);
+    // Eigenes Kürzel setzen
+    const meins = userKuerzel.find(u => u.user_id === meineUserId);
+    meinKuerzel = meins ? meins.kuerzel : '';
     sync('ok');
     renderProdukte(); renderUebersicht(); renderLog();
   } catch(e) { sync('error'); toast('❌ Verbindungsfehler: ' + e.message); }
@@ -445,11 +457,11 @@ async function buchen(pid, lo, delta, notiz='') {
       produkt_id: pid, lagerort: lo, menge_kg: neu,
       aktualisiert_am: new Date().toISOString()
     });
-    await api.post('lager_buchungen', { produkt_id: pid, lagerort: lo, menge_kg: delta, notiz: notiz||null });
+    await api.post('lager_buchungen', { produkt_id: pid, lagerort: lo, menge_kg: delta, notiz: notiz||null, kuerzel: meinKuerzel||null });
     const idx = bestaende.findIndex(b => b.produkt_id===pid && b.lagerort===lo);
     if (idx>=0) bestaende[idx].menge_kg = neu;
     else bestaende.push({ produkt_id:pid, lagerort:lo, menge_kg:neu });
-    buchungen.unshift({ produkt_id:pid, lagerort:lo, menge_kg:delta, notiz, erstellt_am:new Date().toISOString() });
+    buchungen.unshift({ produkt_id:pid, lagerort:lo, menge_kg:delta, notiz, kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
     sync('ok');
     renderProdukte(); renderUebersicht(); renderLog();
     const pname = produkte.find(p => p.id===pid)?.name||'';
@@ -463,7 +475,9 @@ async function buchen(pid, lo, delta, notiz='') {
 function renderProdukte() {
   const raw = document.getElementById('searchInput').value.trim();
   const el = document.getElementById('produktListe');
-  // Welche Karten sind gerade offen? Merken vor dem Re-Render
+  // Scroll-Position und offene Karten merken
+  const scrollEl = document.querySelector('.scroll-area');
+  const scrollTop = scrollEl ? scrollEl.scrollTop : 0;
   const offene = [...document.querySelectorAll('.pc.open')].map(c => c.id);
   // Normalisierung: Leerzeichen, Bindestriche, Punkte entfernen -> bz300 = BZ 300 = bz-300
   const norm = s => s.toLowerCase().split(' ').join('').split('-').join('').split('.').join('').split('_').join('');
@@ -544,10 +558,14 @@ function renderProdukte() {
     </div>`;
   }).join('');
   // Offene Karten nach Re-Render wiederherstellen
-  setTimeout(() => offene.forEach(id => {
-    const c = document.getElementById(id);
-    if (c) c.classList.add('open');
-  }), 0);
+  setTimeout(() => {
+    offene.forEach(id => {
+      const c = document.getElementById(id);
+      if (c) c.classList.add('open');
+    });
+    // Scroll-Position wiederherstellen
+    if (scrollEl) scrollEl.scrollTop = scrollTop;
+  }, 0);
 }
 
 async function qb(pid,lo,delta,e) { e.stopPropagation(); await buchen(pid,lo,delta); }
@@ -666,7 +684,7 @@ function renderLog() {
       <div class="log-sign ${pos?'pos':'neg'}">${pos?'+':''}${b.menge_kg}<br><span style="font-size:10px;color:var(--muted)">kg</span></div>
       <div class="log-info">
         <div class="log-prod">${p?p.name:'–'}<span class="lort-sm ${b.lagerort.toLowerCase()}">${b.lagerort}</span></div>
-        <div class="log-meta">${datum}${b.notiz?' · '+b.notiz:''}</div>
+        <div class="log-meta">${datum}${b.kuerzel?' · <strong>'+b.kuerzel+'</strong>':''}${b.notiz?' · '+b.notiz:''}</div>
       </div>
     </div>`;
   }).join('') + '</div>';
@@ -699,19 +717,31 @@ function applyUpdate() {
 // ══════════════════════════════════════════════════════════
 // VERWALTUNG – Richtwerte anpassen
 // ══════════════════════════════════════════════════════════
-function renderVerwaltung() {
+function renderVerwaltung(filterQ='') {
   const el = document.getElementById('verwaltungContent');
-  const names = uniqueNames();
+  const names = uniqueNames().filter(n =>
+    !filterQ || n.toLowerCase().split(' ').join('').includes(filterQ.toLowerCase().split(' ').join(''))
+  );
 
   el.innerHTML = `
     <div class="sl" style="margin-top:14px">Mindestbestände (Richtwerte)</div>
     <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#1e3a5f;font-family:'Barlow',sans-serif;">
-      ℹ️ Produkte erscheinen im Tab <strong>Übersicht → Nachbestellen</strong> sobald der Bestand unter 50% des Richtwerts fällt.
+      ℹ️ Produkte erscheinen unter <strong>Nachbestellen</strong> sobald der Bestand unter 50% des Richtwerts fällt.
     </div>
+
+    <!-- Suche -->
+    <div style="position:relative;margin-bottom:10px;">
+      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
+      <input type="search" id="verwaltungSuche" value="${filterQ}"
+        oninput="renderVerwaltung(this.value)"
+        placeholder="Produkt suchen… z.B. BZ 300"
+        style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;">
+    </div>
+
     <div class="card">
       <div class="card-title">Richtwerte bearbeiten</div>
       <div class="card-body" style="padding:0">
-        ${names.map(name => {
+        ${names.length ? names.map(name => {
           const rw = richtwert(name) || '';
           const sid = name.replace(/[^a-zA-Z0-9]/g,'_');
           return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #e0f2fe;">
@@ -724,10 +754,71 @@ function renderVerwaltung() {
                 style="background:#0369a1;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.5px;cursor:pointer;">OK</button>
             </div>
           </div>`;
-        }).join('')}
+        }).join('') : '<div style="padding:16px;color:#94a3b8;font-size:13px;text-align:center">Keine Produkte gefunden</div>'}
+      </div>
+    </div>
+
+    <!-- Techniker-Kürzel -->
+    <div class="sl">Techniker-Kürzel</div>
+    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#1e3a5f;font-family:'Barlow',sans-serif;">
+      ℹ️ Kürzel erscheinen im Log bei jeder Buchung. User-ID findest du in Supabase → Authentication → Users.
+    </div>
+    <div class="card">
+      <div class="card-title">Kürzel verwalten</div>
+      <div class="card-body" style="padding:0">
+        ${userKuerzel.map(u => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #e0f2fe;">
+            <div style="flex:1;">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;">${u.kuerzel}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:11px;color:#64748b;">${u.name||''}</div>
+            </div>
+            <button onclick="loescheKuerzel('${u.id}')"
+              style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">✕</button>
+          </div>`).join('')}
+        <!-- Neues Kürzel -->
+        <div style="padding:12px 14px;background:#f8fafc;">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="neu-kuerzel" placeholder="Kürzel (z.B. IG)"
+              style="width:80px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:8px;font-family:'DM Mono',monospace;font-size:14px;outline:none;text-transform:uppercase;">
+            <input type="text" id="neu-kuerzel-name" placeholder="Name (optional)"
+              style="flex:1;min-width:120px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;">
+            <input type="text" id="neu-kuerzel-uid" placeholder="User-ID (aus Supabase)"
+              style="flex:2;min-width:200px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:8px;font-family:'DM Mono',monospace;font-size:12px;outline:none;">
+            <button onclick="speichereKuerzel()"
+              style="background:#0369a1;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">＋ Hinzufügen</button>
+          </div>
+        </div>
       </div>
     </div>
   `;
+}
+
+async function speichereKuerzel() {
+  const kuerzel = document.getElementById('neu-kuerzel').value.trim().toUpperCase();
+  const name = document.getElementById('neu-kuerzel-name').value.trim();
+  const uid = document.getElementById('neu-kuerzel-uid').value.trim();
+  if (!kuerzel || !uid) { toast('⚠️ Kürzel und User-ID erforderlich'); return; }
+  sync('syncing');
+  try {
+    const res = await api.post('lager_user_kuerzel', { kuerzel, name: name||null, user_id: uid });
+    userKuerzel.push(res[0]);
+    sync('ok');
+    renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
+    toast('✅ Kürzel angelegt: ' + kuerzel);
+  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+}
+
+async function loescheKuerzel(id) {
+  sync('syncing');
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/lager_user_kuerzel?id=eq.${id}`, {
+      method:'DELETE', headers: api.h()
+    });
+    userKuerzel = userKuerzel.filter(u => u.id !== id);
+    sync('ok');
+    renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
+    toast('🗑️ Kürzel gelöscht');
+  } catch(e) { sync('error'); toast('❌ ' + e.message); }
 }
 
 async function speichereRichtwert(name, sid) {

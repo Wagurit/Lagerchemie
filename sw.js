@@ -1,4 +1,4 @@
-const CACHE = 'lagerchemie-v2';
+const CACHE = 'lagerchemie-v4';
 const ASSETS = ['./', './index.html'];
 
 self.addEventListener('install', e => {
