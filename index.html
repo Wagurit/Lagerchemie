@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Lagerchemie</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0ea5e9;
+  --surface: #0284c7;
+  --surface2: #0369a1;
+  --border: #38bdf8;
+  --ok: #15803d;
+  --warn: #b45309;
+  --err: #b91c1c;
+  --text: #0f172a;
+  --muted: #1e3a5f;
+  --input-bg: #f0f9ff;
+  --header-h: 56px;
+  --tabs-h: 42px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+.header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: var(--header-h); background: var(--surface2);
+  border-bottom: 1px solid var(--surface);
+  padding: 0 14px; display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.logo { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 1px; color: #fff; }
+.logo span { color: #bae6fd; font-weight: 400; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80; margin-left: auto; flex-shrink: 0; }
+.sync-dot.syncing { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; animation: pulse 1s infinite; }
+.sync-dot.error { background: #f87171; box-shadow: 0 0 6px #f87171; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.tabs {
+  position: fixed; top: var(--header-h); left: 0; right: 0; z-index: 190;
+  height: var(--tabs-h); background: var(--surface);
+  border-bottom: 1px solid var(--surface2);
+  display: flex; overflow-x: auto; scrollbar-width: none; align-items: stretch;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+  padding: 0 16px; font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700; font-size: 14px; letter-spacing: 0.5px; color: #bae6fd;
+  border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap;
+  transition: all .15s; border: none; background: none;
+}
+.tab:hover { color: #fff; }
+.tab.active { color: #fff; border-bottom-color: #fff; }
+
+.scroll-area { position: fixed; top: calc(var(--header-h) + var(--tabs-h)); bottom: 0; left: 0; right: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.view { display: none; padding: 12px 12px 100px; }
+.view.active { display: block; }
+
+.sl { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #0f172a; margin: 14px 0 8px; display: flex; align-items: center; gap: 10px; }
+.sl::after { content: ''; flex: 1; height: 1px; background: #7dd3fc; }
+
+.card { background: #fff; border: 1px solid #bae6fd; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.10); margin-bottom: 10px; }
+.card-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--surface2); padding: 9px 14px; background: #e0f2fe; border-bottom: 1px solid #bae6fd; }
+.card-body { padding: 14px; }
+
+.search-wrap { position: relative; margin-bottom: 10px; }
+.search-input { width: 100%; background: #fff; border: 2px solid #7dd3fc; border-radius: 8px; padding: 11px 14px 11px 38px; font-family: 'Barlow', sans-serif; font-size: 15px; color: var(--text); outline: none; transition: border-color .15s; }
+.search-input:focus { border-color: var(--surface2); box-shadow: 0 0 0 2px #bae6fd; }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; pointer-events: none; }
+
+.filter-row { display: flex; gap: 6px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.filter-row::-webkit-scrollbar { display: none; }
+.fpill { white-space: nowrap; padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.15); font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: #fff; cursor: pointer; transition: all .15s; }
+.fpill.active { background: #fff; color: var(--surface2); border-color: #fff; }
+.fpill.fp-garage.active { background: #0284c7; color: #fff; border-color: #0284c7; }
+.fpill.fp-werkstatt.active { background: #d97706; color: #fff; border-color: #d97706; }
+.fpill.fp-warn.active { background: #fef2f2; color: var(--err); border-color: #fca5a5; }
+
+/* PRODUKT CARD */
+.pc { background: #fff; border: 1px solid #bae6fd; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.10); margin-bottom: 10px; }
+.pc.pc-low { border-color: #fca5a5; }
+.pc.pc-warn { border-color: #fcd34d; }
+.pc-bar { height: 3px; background: #7dd3fc; }
+.pc-bar.bl { background: var(--err); }
+.pc-bar.bw { background: var(--warn); }
+.pc-header { padding: 12px 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.pc-name { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 20px; color: var(--text); flex: 1; }
+.pc-total-kg { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; color: var(--text); text-align: right; }
+.pc-total-rw { font-size: 10px; color: var(--muted); text-align: right; margin-top: 1px; }
+.chev { font-size: 11px; color: var(--muted); transition: transform .2s; flex-shrink: 0; }
+.pc.open .chev { transform: rotate(180deg); }
+
+.chip-row { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 14px 12px; }
+.lchip { display: inline-flex; align-items: center; gap: 5px; border-radius: 20px; padding: 3px 10px; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 0.3px; border: 1px solid; }
+.lchip.garage { background: #e0f2fe; border-color: #7dd3fc; color: var(--surface2); }
+.lchip.werkstatt { background: #fffbeb; border-color: #fcd34d; color: var(--warn); }
+.lchip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.pc-detail { border-top: 1px solid #e0f2fe; display: none; }
+.pc.open .pc-detail { display: block; }
+
+.gebinde-row { padding: 12px 14px; border-bottom: 1px solid #e0f2fe; }
+.gebinde-row:last-child { border-bottom: none; }
+.gebinde-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.gebinde-size-label { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.lort-badge { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 4px; letter-spacing: 0.5px; }
+.lort-badge.garage { background: #e0f2fe; color: var(--surface2); }
+.lort-badge.werkstatt { background: #fffbeb; color: var(--warn); }
+
+.gebinde-mid { display: flex; align-items: center; gap: 10px; }
+.menge-display { flex: 1; }
+.menge-kg { font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 500; color: var(--text); line-height: 1; }
+.menge-sub { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+.counter-group { display: flex; gap: 6px; }
+.cbtn { width: 44px; height: 44px; border-radius: 8px; border: 1px solid; font-size: 22px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .1s; font-family: 'Barlow Condensed', sans-serif; }
+.cbtn:active { transform: scale(0.9); }
+.cbtn.minus { background: #fef2f2; border-color: #fca5a5; color: var(--err); }
+.cbtn.plus  { background: #f0fdf4; border-color: #86efac; color: var(--ok); }
+
+.manual-row { display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e0f2fe; }
+.manual-inp { flex: 1; background: var(--input-bg); border: 1px solid #7dd3fc; border-radius: 6px; padding: 9px 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; outline: none; min-width: 0; }
+.manual-inp:focus { border-color: var(--surface2); }
+.note-inp { flex: 1.5; background: var(--input-bg); border: 1px solid #7dd3fc; border-radius: 6px; padding: 9px 10px; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 13px; outline: none; min-width: 0; }
+.note-inp:focus { border-color: var(--surface2); }
+.btn-ok { background: var(--surface2); color: #fff; border: none; border-radius: 6px; padding: 9px 14px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.5px; cursor: pointer; white-space: nowrap; }
+.btn-ok:active { opacity: 0.85; }
+
+/* NEU BUTTON */
+.btn-neu { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 11px; border-radius: 8px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.5px; cursor: pointer; margin-bottom: 12px; transition: all .15s; }
+.btn-neu:hover { background: rgba(255,255,255,0.25); }
+
+/* FORM */
+.f { margin-bottom: 10px; }
+.f label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .5px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
+.f input, .f select { width: 100%; background: var(--input-bg); border: 1px solid #7dd3fc; border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; padding: 9px 10px; outline: none; -webkit-appearance: none; }
+.f input:focus { border-color: var(--surface2); box-shadow: 0 0 0 2px #bae6fd; }
+.r2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* STAT GRID */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+.stat-card { background: #fff; border: 1px solid #bae6fd; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
+.stat-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.stat-val { font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 500; color: var(--surface2); line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* LOG */
+.log-item { background: #fff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+.log-sign { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; min-width: 58px; text-align: right; line-height: 1.3; padding-top: 1px; }
+.log-sign.pos { color: var(--ok); }
+.log-sign.neg { color: var(--err); }
+.log-info { flex: 1; }
+.log-prod { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; color: var(--text); }
+.log-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
+.lort-sm { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; letter-spacing: 0.5px; margin-left: 5px; }
+.lort-sm.garage { background: #e0f2fe; color: var(--surface2); }
+.lort-sm.werkstatt { background: #fffbeb; color: var(--warn); }
+
+/* MODAL */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: none; align-items: flex-end; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: #fff; border-radius: 16px 16px 0 0; padding: 20px 16px 40px; width: 100%; max-width: 480px; }
+.modal-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 20px; color: var(--text); margin-bottom: 16px; }
+.modal-close { float: right; background: #e0f2fe; border: none; border-radius: 6px; padding: 4px 10px; font-size: 16px; cursor: pointer; color: var(--surface2); font-weight: 700; }
+.btn-save { display: block; width: 100%; padding: 12px; border-radius: 8px; background: var(--surface2); color: #fff; border: none; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.5px; cursor: pointer; margin-top: 10px; }
+
+/* RESULT ROWS */
+.rr { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #e0f2fe; }
+.rr:last-child { border-bottom: none; }
+.rl { color: var(--muted); font-size: 12px; flex: 1; }
+.rv { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--text); text-align: right; }
+.rv.err { color: var(--err); }
+
+/* TOAST */
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface2); color: #fff; border: 1px solid #7dd3fc; padding: 12px 20px; border-radius: 8px; font-family: 'Barlow', sans-serif; font-size: 14px; font-weight: 500; z-index: 999; transition: transform 0.3s; white-space: nowrap; box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+.empty { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.75); font-size: 14px; }
+</style>
+
+<script>
+  // Service Worker registrieren für Auto-Updates
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        // Alle 60 Minuten auf Updates prüfen
+        setInterval(() => reg.update(), 60 * 60 * 1000);
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // Neues Update verfügbar – Toast zeigen
+              showUpdateBanner();
+            }
+          });
+        });
+      });
+    });
+    // Nach Aktivierung neu laden
+    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+  }
+  function showUpdateBanner() {
+    const b = document.getElementById('updateBanner');
+    if (b) b.style.display = 'flex';
+  }
+</script>
+</head>
+<body>
+
+<script>
+  const SUPABASE_URL = 'https://loekjdetgppmxnwnwxkm.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A';
+</script>
+
+
+
+<!-- UPDATE BANNER -->
+<div id="updateBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:10000; background:#15803d; color:#fff; padding:10px 16px; align-items:center; justify-content:space-between; gap:10px; font-family:'Barlow',sans-serif; font-size:13px; font-weight:500;">
+  <span>🔄 Neue Version verfügbar</span>
+  <button onclick="applyUpdate()" style="background:#fff; color:#15803d; border:none; border-radius:6px; padding:6px 14px; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; letter-spacing:0.5px; cursor:pointer;">JETZT AKTUALISIEREN</button>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="display:none; position:fixed; inset:0; background:#0369a1; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#fff; border-radius:16px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
+    <div style="font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:24px; color:#0369a1; margin-bottom:4px; letter-spacing:-0.3px;">
+      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span>
+    </div>
+    <div style="font-family:'Barlow',sans-serif; font-size:13px; color:#64748b; margin-bottom:24px;">Bitte anmelden um fortzufahren</div>
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:11px;font-weight:600;letter-spacing:.5px;color:#1e3a5f;margin-bottom:4px;text-transform:uppercase;">E-Mail</label>
+      <input type="email" id="loginEmail" placeholder="name@firma.de"
+        style="width:100%;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;color:#0f172a;font-family:'DM Mono',monospace;font-size:14px;padding:10px;outline:none;">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:11px;font-weight:600;letter-spacing:.5px;color:#1e3a5f;margin-bottom:4px;text-transform:uppercase;">Passwort</label>
+      <input type="password" id="loginPassword" placeholder="••••••••"
+        style="width:100%;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;color:#0f172a;font-family:'DM Mono',monospace;font-size:14px;padding:10px;outline:none;"
+        onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <div id="loginError" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:10px;font-size:13px;color:#b91c1c;margin-bottom:12px;font-family:'Barlow',sans-serif;"></div>
+    <button onclick="doLogin()"
+      style="width:100%;padding:12px;border-radius:8px;background:#0369a1;color:#fff;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;cursor:pointer;">
+      Anmelden
+    </button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">Lager<span>chemie</span></div>
+  <div class="sync-dot" id="syncDot"></div>
+  <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">LOGOUT</button>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="setTab('produkte',this)">📦 Produkte</button>
+  <button class="tab" onclick="setTab('uebersicht',this)">📊 Übersicht</button>
+  <button class="tab" onclick="setTab('log',this)">📋 Log</button>
+  <button class="tab" onclick="setTab('verwaltung',this)">⚙️ Verwaltung</button>
+</div>
+
+<div class="scroll-area">
+
+  <!-- PRODUKTE -->
+  <div class="view active" id="view-produkte">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="search" class="search-input" id="searchInput"
+        placeholder="Produkt suchen… z.B. BZ 300" oninput="renderProdukte()">
+    </div>
+    <div class="filter-row">
+      <button class="fpill active" onclick="setFilter('alle',this)">Alle</button>
+      <button class="fpill fp-garage" onclick="setFilter('garage',this)">🔵 Garage</button>
+      <button class="fpill fp-werkstatt" onclick="setFilter('werkstatt',this)">🟡 Werkstatt</button>
+      <button class="fpill fp-warn" onclick="setFilter('niedrig',this)">⚠️ Niedrig</button>
+    </div>
+    <button class="btn-neu" onclick="openModal()">＋ Neues Produkt anlegen</button>
+    <div id="produktListe"></div>
+  </div>
+
+  <!-- ÜBERSICHT -->
+  <div class="view" id="view-uebersicht">
+    <div id="uebersichtContent"></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="view" id="view-log">
+    <div id="logContent"></div>
+  </div>
+
+
+  <!-- VERWALTUNG -->
+  <div class="view" id="view-verwaltung">
+    <div id="verwaltungContent"></div>
+  </div>
+
+</div>
+
+<!-- MODAL: Neues Produkt -->
+<div class="modal-bg" id="modalNeu">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">Neues Produkt</div>
+    <div class="f">
+      <label>Produktname</label>
+      <input type="text" id="neu-name" placeholder="z.B. BZ 999">
+    </div>
+    <div class="r2">
+      <div class="f">
+        <label>Gebinde (kg)</label>
+        <input type="number" id="neu-gebinde" placeholder="z.B. 20">
+      </div>
+      <div class="f">
+        <label>Richtwert (kg)</label>
+        <input type="number" id="neu-richtwert" placeholder="optional">
+      </div>
+    </div>
+    <button class="btn-save" onclick="speichereNeuesProdukt()">Produkt speichern</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// API HELPER
+// ══════════════════════════════════════════════════════════
+const api = {
+  h() { return { apikey: SUPABASE_KEY, Authorization: `Bearer ${authToken || SUPABASE_KEY}`, 'Content-Type': 'application/json' }; },
+  async get(table, qs='') {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, { headers: this.h() });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
+  async post(table, data) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method:'POST', headers:{...this.h(), Prefer:'return=representation'}, body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  },
+  async upsert(table, data) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method:'POST',
+      headers:{...this.h(), Prefer:'resolution=merge-duplicates,return=representation'},
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+};
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let produkte = [], bestaende = [], buchungen = [];
+let aktFilter = 'alle';
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+async function init() {
+  sync('syncing');
+  try {
+    [produkte, bestaende, buchungen] = await Promise.all([
+      api.get('lager_produkte','order=name.asc,gebinde_kg.desc'),
+      api.get('lager_bestand','order=lagerort.asc'),
+      api.get('lager_buchungen','order=erstellt_am.desc&limit=150')
+    ]);
+    sync('ok');
+    renderProdukte(); renderUebersicht(); renderLog();
+  } catch(e) { sync('error'); toast('❌ Verbindungsfehler: ' + e.message); }
+}
+
+function sync(s) {
+  const d = document.getElementById('syncDot');
+  d.className = 'sync-dot' + (s !== 'ok' ? ' ' + s : '');
+}
+
+// ══════════════════════════════════════════════════════════
+// TABS / FILTER
+// ══════════════════════════════════════════════════════════
+function setTab(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+function setFilter(f, btn) {
+  aktFilter = f;
+  document.querySelectorAll('.fpill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderProdukte();
+}
+
+// ══════════════════════════════════════════════════════════
+// HELFER
+// ══════════════════════════════════════════════════════════
+const iqq = (s) => s.replace(/[\s\/\.]/g,'_'); // ID-safe string
+function getMenge(pid, lo) {
+  const b = bestaende.find(b => b.produkt_id === pid && b.lagerort === lo);
+  return b ? Number(b.menge_kg) : 0;
+}
+function uniqueNames() { return [...new Set(produkte.map(p => p.name))]; }
+function prodsFor(name) { return produkte.filter(p => p.name === name); }
+function gesamtKg(name) {
+  const ids = prodsFor(name).map(p => p.id);
+  return bestaende.filter(b => ids.includes(b.produkt_id)).reduce((s,b) => s + Number(b.menge_kg), 0);
+}
+function richtwert(name) {
+  const p = prodsFor(name).find(p => p.richtwert_kg);
+  return p ? Number(p.richtwert_kg) : null;
+}
+function loKg(name, lo) {
+  const ids = prodsFor(name).map(p => p.id);
+  return bestaende.filter(b => ids.includes(b.produkt_id) && b.lagerort === lo).reduce((s,b) => s + Number(b.menge_kg), 0);
+}
+
+// ══════════════════════════════════════════════════════════
+// BUCHEN
+// ══════════════════════════════════════════════════════════
+async function buchen(pid, lo, delta, notiz='') {
+  sync('syncing');
+  try {
+    const neu = Math.max(0, getMenge(pid, lo) + Number(delta));
+    await api.upsert('lager_bestand', {
+      produkt_id: pid, lagerort: lo, menge_kg: neu,
+      aktualisiert_am: new Date().toISOString()
+    });
+    await api.post('lager_buchungen', { produkt_id: pid, lagerort: lo, menge_kg: delta, notiz: notiz||null });
+    const idx = bestaende.findIndex(b => b.produkt_id===pid && b.lagerort===lo);
+    if (idx>=0) bestaende[idx].menge_kg = neu;
+    else bestaende.push({ produkt_id:pid, lagerort:lo, menge_kg:neu });
+    buchungen.unshift({ produkt_id:pid, lagerort:lo, menge_kg:delta, notiz, erstellt_am:new Date().toISOString() });
+    sync('ok');
+    renderProdukte(); renderUebersicht(); renderLog();
+    const pname = produkte.find(p => p.id===pid)?.name||'';
+    toast(`${delta>0?'➕':'➖'} ${Math.abs(delta)} kg · ${pname} · ${lo}`);
+  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER PRODUKTE
+// ══════════════════════════════════════════════════════════
+function renderProdukte() {
+  const raw = document.getElementById('searchInput').value.trim();
+  const el = document.getElementById('produktListe');
+  // Normalisierung: Leerzeichen, Bindestriche, Punkte entfernen -> bz300 = BZ 300 = bz-300
+  const norm = s => s.toLowerCase().split(' ').join('').split('-').join('').split('.').join('').split('_').join('');
+  const q = norm(raw);
+
+  const names = uniqueNames().filter(name => {
+    if (q && !norm(name).includes(q)) return false;
+    if (aktFilter === 'garage') return loKg(name,'Garage') > 0;
+    if (aktFilter === 'werkstatt') return loKg(name,'Werkstatt') > 0;
+    if (aktFilter === 'niedrig') { const rw=richtwert(name); return rw && gesamtKg(name) < rw*0.5; }
+    return true;
+  });
+
+  if (!names.length) { el.innerHTML='<div class="empty">Keine Produkte gefunden</div>'; return; }
+
+  el.innerHTML = names.map(name => {
+    const gkg = gesamtKg(name);
+    const rw = richtwert(name);
+    const pct = rw ? gkg/rw : 1;
+    const barCls = pct < 0.3 ? 'bl' : pct < 0.5 ? 'bw' : '';
+    const cardCls = pct < 0.3 ? 'pc-low' : pct < 0.5 ? 'pc-warn' : '';
+
+    const chips = ['Garage','Werkstatt'].map(lo => {
+      const kg = loKg(name, lo);
+      if (!kg) return '';
+      return `<span class="lchip ${lo.toLowerCase()}"><span class="lchip-dot"></span>${lo}: ${kg} kg</span>`;
+    }).join('');
+
+    const rows = prodsFor(name).flatMap(p =>
+      ['Garage','Werkstatt'].map(lo => {
+        const kg = getMenge(p.id, lo);
+        const kan = p.gebinde_kg ? (kg/p.gebinde_kg).toFixed(1) : '–';
+        const sid = `${iqq(p.id)}_${lo}`;
+        return `<div class="gebinde-row">
+          <div class="gebinde-top">
+            <span class="gebinde-size-label">${p.gebinde_kg} kg Gebinde</span>
+            <span class="lort-badge ${lo.toLowerCase()}">${lo==='Garage'?'🔵':'🟡'} ${lo}</span>
+          </div>
+          <div class="gebinde-mid">
+            <div class="menge-display">
+              <div class="menge-kg">${kg} <span style="font-size:14px;color:var(--muted)">kg</span></div>
+              <div class="menge-sub">${kan} × ${p.gebinde_kg} kg Gebinde</div>
+            </div>
+            <div class="counter-group">
+              <button class="cbtn minus" onclick="qb('${p.id}','${lo}',-${p.gebinde_kg},event)">−</button>
+              <button class="cbtn plus"  onclick="qb('${p.id}','${lo}',+${p.gebinde_kg},event)">+</button>
+            </div>
+          </div>
+          <div class="manual-row">
+            <input type="number" class="manual-inp" id="m_${sid}" placeholder="kg (+rein / −raus)" step="${p.gebinde_kg}">
+            <input type="text" class="note-inp" id="n_${sid}" placeholder="Notiz (Kunde…)">
+            <button class="btn-ok" onclick="mb('${p.id}','${lo}','${sid}')">OK</button>
+          </div>
+        </div>`;
+      })
+    ).join('');
+
+    return `<div class="pc ${cardCls}" id="pc_${iqq(name)}">
+      <div class="pc-bar ${barCls}"></div>
+      <div class="pc-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="pc-name">${name}</div>
+        <div>
+          <div class="pc-total-kg">${gkg} kg</div>
+          ${rw?`<div class="pc-total-rw">Richtwert: ${rw} kg</div>`:''}
+        </div>
+        <span class="chev">▼</span>
+      </div>
+      <div class="chip-row">
+        ${chips||'<span style="font-size:12px;color:#94a3b8">Noch kein Bestand – aufklappen zum Einbuchen</span>'}
+      </div>
+      <div class="pc-detail">${rows}</div>
+    </div>`;
+  }).join('');
+}
+
+async function qb(pid,lo,delta,e) { e.stopPropagation(); await buchen(pid,lo,delta); }
+async function mb(pid,lo,sid) {
+  const inp=document.getElementById('m_'+sid);
+  const noteInp=document.getElementById('n_'+sid);
+  const val=parseFloat(inp.value);
+  if(isNaN(val)||val===0){toast('⚠️ Bitte kg-Wert eingeben');return;}
+  const notiz=noteInp?.value.trim()||'';
+  inp.value=''; if(noteInp) noteInp.value='';
+  await buchen(pid,lo,val,notiz);
+}
+
+// ══════════════════════════════════════════════════════════
+// NEUES PRODUKT
+// ══════════════════════════════════════════════════════════
+function openModal() { document.getElementById('modalNeu').classList.add('open'); }
+function closeModal() { document.getElementById('modalNeu').classList.remove('open'); }
+
+async function speichereNeuesProdukt() {
+  const name = document.getElementById('neu-name').value.trim();
+  const geb = parseInt(document.getElementById('neu-gebinde').value);
+  const rw = parseFloat(document.getElementById('neu-richtwert').value)||null;
+  if(!name||!geb){toast('⚠️ Name und Gebindegröße erforderlich');return;}
+  sync('syncing');
+  try {
+    const res = await api.post('lager_produkte', {name, gebinde_kg:geb, richtwert_kg:rw});
+    produkte.push(res[0]);
+    produkte.sort((a,b)=>a.name.localeCompare(b.name));
+    sync('ok'); closeModal();
+    ['neu-name','neu-gebinde','neu-richtwert'].forEach(id=>document.getElementById(id).value='');
+    renderProdukte();
+    toast('✅ Produkt angelegt: ' + name);
+  } catch(e){sync('error');toast('❌ '+e.message);}
+}
+
+// ══════════════════════════════════════════════════════════
+// ÜBERSICHT
+// ══════════════════════════════════════════════════════════
+function renderUebersicht() {
+  const el = document.getElementById('uebersichtContent');
+  const gKg = bestaende.filter(b=>b.lagerort==='Garage').reduce((s,b)=>s+Number(b.menge_kg),0);
+  const wKg = bestaende.filter(b=>b.lagerort==='Werkstatt').reduce((s,b)=>s+Number(b.menge_kg),0);
+  const niedrig = uniqueNames().filter(n=>{const rw=richtwert(n);return rw&&gesamtKg(n)<rw*0.5;});
+
+  el.innerHTML = `
+    <div class="sl" style="margin-top:14px">Lagerübersicht</div>
+    <div class="stat-grid">
+      <div class="stat-card" style="border-color:#7dd3fc">
+        <div class="stat-label">🔵 Garage</div>
+        <div class="stat-val" style="color:var(--surface2)">${gKg}</div>
+        <div class="stat-sub">kg gesamt</div>
+      </div>
+      <div class="stat-card" style="border-color:#fcd34d">
+        <div class="stat-label">🟡 Werkstatt</div>
+        <div class="stat-val" style="color:var(--warn)">${wKg}</div>
+        <div class="stat-sub">kg gesamt</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">📦 Produkte</div>
+        <div class="stat-val">${uniqueNames().length}</div>
+        <div class="stat-sub">erfasst</div>
+      </div>
+      <div class="stat-card" style="${niedrig.length?'border-color:#fca5a5':''}">
+        <div class="stat-label">⚠️ Niedrig</div>
+        <div class="stat-val" style="color:${niedrig.length?'var(--err)':'var(--ok)'}">${niedrig.length}</div>
+        <div class="stat-sub">unter 50% Richtwert</div>
+      </div>
+    </div>
+
+    ${niedrig.length ? `
+    <div class="sl">⚠️ Nachbestellen</div>
+    <div class="card"><div class="card-body">
+      ${niedrig.map(name=>{
+        const kg=gesamtKg(name), rw=richtwert(name), pct=Math.round(kg/rw*100);
+        return `<div class="rr"><span class="rl">${name}</span>
+          <span class="rv err">${kg} kg <span style="color:#94a3b8;font-size:11px">/ ${rw} kg (${pct}%)</span></span></div>`;
+      }).join('')}
+    </div></div>` : `
+    <div class="sl">Status</div>
+    <div class="card"><div class="card-body" style="text-align:center;padding:20px;color:var(--ok);font-weight:600">
+      ✅ Alle Bestände im grünen Bereich
+    </div></div>`}
+
+    <div class="sl">Alle Produkte</div>
+    <div class="card"><div class="card-body">
+      ${uniqueNames().map(name=>{
+        const kg=gesamtKg(name), rw=richtwert(name);
+        const isLow=rw&&kg<rw*0.5;
+        const gk=loKg(name,'Garage'), wk=loKg(name,'Werkstatt');
+        return `<div class="rr">
+          <div class="rl">${name}
+            <div style="margin-top:2px;display:flex;gap:8px">
+              ${gk>0?`<span style="font-size:10px;color:var(--surface2)">🔵 ${gk} kg</span>`:''}
+              ${wk>0?`<span style="font-size:10px;color:var(--warn)">🟡 ${wk} kg</span>`:''}
+            </div>
+          </div>
+          <span class="rv ${isLow?'err':''}">${kg} kg</span>
+        </div>`;
+      }).join('')}
+    </div></div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════
+// LOG
+// ══════════════════════════════════════════════════════════
+function renderLog() {
+  const el = document.getElementById('logContent');
+  if(!buchungen.length){el.innerHTML='<div class="empty">Noch keine Buchungen vorhanden</div>';return;}
+  el.innerHTML = '<div style="margin-top:12px">' + buchungen.map(b=>{
+    const p=produkte.find(p=>p.id===b.produkt_id);
+    const pos=Number(b.menge_kg)>0;
+    const datum=new Date(b.erstellt_am).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return `<div class="log-item">
+      <div class="log-sign ${pos?'pos':'neg'}">${pos?'+':''}${b.menge_kg}<br><span style="font-size:10px;color:var(--muted)">kg</span></div>
+      <div class="log-info">
+        <div class="log-prod">${p?p.name:'–'}<span class="lort-sm ${b.lagerort.toLowerCase()}">${b.lagerort}</span></div>
+        <div class="log-meta">${datum}${b.notiz?' · '+b.notiz:''}</div>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+// ══════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════
+let _tt;
+function toast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+
+// ══════════════════════════════════════════════════════════
+// SERVICE WORKER UPDATE
+// ══════════════════════════════════════════════════════════
+function applyUpdate() {
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if (reg && reg.waiting) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      location.reload();
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// VERWALTUNG – Richtwerte anpassen
+// ══════════════════════════════════════════════════════════
+function renderVerwaltung() {
+  const el = document.getElementById('verwaltungContent');
+  const names = uniqueNames();
+
+  el.innerHTML = `
+    <div class="sl" style="margin-top:14px">Mindestbestände (Richtwerte)</div>
+    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#1e3a5f;font-family:'Barlow',sans-serif;">
+      ℹ️ Produkte erscheinen im Tab <strong>Übersicht → Nachbestellen</strong> sobald der Bestand unter 50% des Richtwerts fällt.
+    </div>
+    <div class="card">
+      <div class="card-title">Richtwerte bearbeiten</div>
+      <div class="card-body" style="padding:0">
+        ${names.map(name => {
+          const rw = richtwert(name) || '';
+          const sid = name.replace(/[^a-zA-Z0-9]/g,'_');
+          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #e0f2fe;">
+            <div style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#0f172a;">${name}</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <input type="number" id="rw_${sid}" value="${rw}" placeholder="–"
+                style="width:80px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:14px;color:#0f172a;outline:none;text-align:right;">
+              <span style="font-size:12px;color:#1e3a5f;font-family:'DM Mono',monospace;">kg</span>
+              <button onclick="speichereRichtwert('${name}','${sid}')"
+                style="background:#0369a1;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.5px;cursor:pointer;">OK</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+async function speichereRichtwert(name, sid) {
+  const inp = document.getElementById('rw_' + sid);
+  const val = parseFloat(inp.value) || null;
+  sync('syncing');
+  try {
+    // Alle Produkte mit diesem Namen updaten (alle Gebindegrößen)
+    const ids = prodsFor(name).map(p => p.id);
+    // Erste Zeile bekommt den Richtwert, Rest null (damit richtwert() nur einmal zurückgibt)
+    for (let i = 0; i < ids.length; i++) {
+      await fetch(`${SUPABASE_URL}/rest/v1/lager_produkte?id=eq.${ids[i]}`, {
+        method: 'PATCH',
+        headers: { ...api.h(), Prefer: 'return=minimal' },
+        body: JSON.stringify({ richtwert_kg: i === 0 ? val : null })
+      });
+      // Lokalen State updaten
+      const p = produkte.find(p => p.id === ids[i]);
+      if (p) p.richtwert_kg = i === 0 ? val : null;
+    }
+    sync('ok');
+    renderVerwaltung();
+    renderUebersicht();
+    toast(`✅ Richtwert ${name}: ${val ? val + ' kg' : 'entfernt'}`);
+  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+}
+
+// ══════════════════════════════════════════════════════════
+// AUTH – Login / Session
+// ══════════════════════════════════════════════════════════
+let authToken = null;
+
+function showLogin() {
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+function hideLogin() {
+  document.getElementById('loginScreen').style.display = 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!email || !pw) { errEl.textContent = 'Bitte E-Mail und Passwort eingeben.'; errEl.style.display = 'block'; return; }
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pw })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error_description || data.msg || 'Login fehlgeschlagen');
+    authToken = data.access_token;
+    // Token im localStorage speichern (bleibt nach Reload)
+    localStorage.setItem('lager_token', authToken);
+    localStorage.setItem('lager_token_exp', Date.now() + (data.expires_in * 1000));
+    hideLogin();
+    await init();
+    renderVerwaltung();
+  } catch(e) {
+    errEl.textContent = '❌ ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+async function checkSession() {
+  const token = localStorage.getItem('lager_token');
+  const exp = parseInt(localStorage.getItem('lager_token_exp') || '0');
+  if (token && Date.now() < exp) {
+    authToken = token;
+    hideLogin();
+    await init();
+    renderVerwaltung();
+  } else {
+    localStorage.removeItem('lager_token');
+    localStorage.removeItem('lager_token_exp');
+    showLogin();
+  }
+}
+
+function doLogout() {
+  authToken = null;
+  localStorage.removeItem('lager_token');
+  localStorage.removeItem('lager_token_exp');
+  showLogin();
+}
+
+
+checkSession();
+</script>
+</body>
+</html>
