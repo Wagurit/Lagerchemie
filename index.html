@@ -463,6 +463,8 @@ async function buchen(pid, lo, delta, notiz='') {
 function renderProdukte() {
   const raw = document.getElementById('searchInput').value.trim();
   const el = document.getElementById('produktListe');
+  // Welche Karten sind gerade offen? Merken vor dem Re-Render
+  const offene = [...document.querySelectorAll('.pc.open')].map(c => c.id);
   // Normalisierung: Leerzeichen, Bindestriche, Punkte entfernen -> bz300 = BZ 300 = bz-300
   const norm = s => s.toLowerCase().split(' ').join('').split('-').join('').split('.').join('').split('_').join('');
   const q = norm(raw);
@@ -484,11 +486,16 @@ function renderProdukte() {
     const barCls = pct < 0.3 ? 'bl' : pct < 0.5 ? 'bw' : '';
     const cardCls = pct < 0.3 ? 'pc-low' : pct < 0.5 ? 'pc-warn' : '';
 
-    const chips = ['Garage','Werkstatt'].map(lo => {
-      const kg = loKg(name, lo);
-      if (!kg) return '';
-      return `<span class="lchip ${lo.toLowerCase()}"><span class="lchip-dot"></span>${lo}: ${kg} kg</span>`;
-    }).join('');
+    // Ein Chip pro Gebindegröße × Lagerort wo Bestand > 0
+    const chips = prods.flatMap(p =>
+      ['Garage','Werkstatt'].map(lo => {
+        const kg = getMenge(p.id, lo);
+        if (!kg) return '';
+        return `<span class="lchip ${lo.toLowerCase()}">
+          <span class="lchip-dot"></span>${lo === 'Garage' ? '🔵' : '🟡'} ${p.gebinde_kg}kg · ${kg} kg
+        </span>`;
+      })
+    ).join('');
 
     const rows = prodsFor(name).flatMap(p =>
       ['Garage','Werkstatt'].map(lo => {
@@ -535,6 +542,11 @@ function renderProdukte() {
       <div class="pc-detail">${rows}</div>
     </div>`;
   }).join('');
+  // Offene Karten nach Re-Render wiederherstellen
+  setTimeout(() => offene.forEach(id => {
+    const c = document.getElementById(id);
+    if (c) c.classList.add('open');
+  }), 0);
 }
 
 async function qb(pid,lo,delta,e) { e.stopPropagation(); await buchen(pid,lo,delta); }
