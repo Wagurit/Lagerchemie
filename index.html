@@ -345,13 +345,26 @@ const api = {
     return r.json();
   },
   async upsert(table, data, onConflict='produkt_id,lagerort') {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?on_conflict=${onConflict}`, {
-      method:'POST',
-      headers:{...this.h(), Prefer:'resolution=merge-duplicates,return=representation'},
-      body: JSON.stringify(data)
-    });
-    if (!r.ok) throw new Error(await r.text());
-    return r.json();
+    // Erst prüfen ob Eintrag existiert
+    const check = await fetch(
+      `${SUPABASE_URL}/rest/v1/${table}?produkt_id=eq.${data.produkt_id}&lagerort=eq.${data.lagerort}`,
+      { headers: this.h() }
+    );
+    const existing = await check.json();
+    if (existing && existing.length > 0) {
+      // UPDATE
+      const r = await fetch(
+        `${SUPABASE_URL}/rest/v1/${table}?produkt_id=eq.${data.produkt_id}&lagerort=eq.${data.lagerort}`,
+        { method:'PATCH', headers:{...this.h(), Prefer:'return=minimal'}, body: JSON.stringify(data) }
+      );
+      if (!r.ok) throw new Error(await r.text());
+    } else {
+      // INSERT
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+        method:'POST', headers:{...this.h(), Prefer:'return=minimal'}, body: JSON.stringify(data)
+      });
+      if (!r.ok) throw new Error(await r.text());
+    }
   }
 };
 
