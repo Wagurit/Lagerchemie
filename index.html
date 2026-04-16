@@ -185,7 +185,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   // Service Worker registrieren für Auto-Updates
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=13').then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=14').then(reg => {
         // Alle 60 Minuten auf Updates prüfen
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
@@ -393,6 +393,8 @@ function fmtDatumKurz(isoStr) {
   const d = new Date(isoStr);
   return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
 }
+// norm: globale Normalisierung für Suche (Leerzeichen, Bindestriche etc. ignorieren)
+const norm = s => s.toLowerCase().split(' ').join('').split('-').join('').split('.').join('').split('_').join('');
 
 // ══════════════════════════════════════════════════════════
 // STATE
@@ -512,9 +514,7 @@ function renderProdukte() {
   const scrollEl = document.querySelector('.scroll-area');
   const scrollTop = scrollEl ? scrollEl.scrollTop : 0;
   const offene = [...document.querySelectorAll('.pc.open')].map(c => c.id);
-  // Normalisierung: Leerzeichen, Bindestriche, Punkte entfernen -> bz300 = BZ 300 = bz-300
-  const norm = s => s.toLowerCase().split(' ').join('').split('-').join('').split('.').join('').split('_').join('');
-  const q = norm(raw);
+  const q = norm(raw); // nutzt globale norm Funktion
 
   const names = uniqueNames().filter(name => {
     if (q && !norm(name).includes(q)) return false;
@@ -782,7 +782,6 @@ function applyUpdate() {
 // ══════════════════════════════════════════════════════════
 function renderVerwaltung(filterQ='') {
   const el = document.getElementById('verwaltungContent');
-  const norm = s => s.toLowerCase().split(' ').join('');
   const names = uniqueNames().filter(n => !filterQ || norm(n).includes(norm(filterQ)));
 
   el.innerHTML = `
@@ -1108,8 +1107,8 @@ function renderLS() {
           </div>
           <div style="flex:1;">
             <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#0f172a;">${p?p.name:'–'}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:11px;color:#64748b;margin-top:2px;">
-              ${ls.kunde}${ls.kuerzel?' · <strong>'+ls.kuerzel+'</strong>':''}
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:#0f172a;margin-top:2px;">
+              ${ls.kunde}${ls.kuerzel?' <span style="font-size:11px;font-weight:400;color:#64748b;">· '+ls.kuerzel+'</span>':''}
             </div>
             <div style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;margin-top:1px;">
               Eingetragen: ${eingetragen}${lsDat?' · LS vom '+lsDat:''}
@@ -1242,14 +1241,17 @@ function renderDifferenz(filterQ='', nurMitDiff=false) {
         const p = produkte.find(p=>p.id===ls.produkt_id);
         return p && p.name === name;
       });
+      // LS Summe mit echtem Vorzeichen — Innendienst kann negativ werden!
       const lsSumme = lsEntries.reduce((s,ls) => s + Number(ls.menge_kg), 0);
       const differenz = lagerKg - lsSumme;
       const hatDiff = differenz !== 0;
-      const cardBorder = hatDiff ? '2px solid #fca5a5' : '1px solid #bae6fd';
-      const barColor = hatDiff ? '#b91c1c' : '#7dd3fc';
+      const lsNegativ = lsSumme < 0; // Eklatanter Fehler: mehr LS als je vorhanden
+      const cardBorder = lsNegativ ? '3px solid #7f1d1d' : hatDiff ? '2px solid #fca5a5' : '1px solid #bae6fd';
+      const barColor = lsNegativ ? '#7f1d1d' : hatDiff ? '#b91c1c' : '#7dd3fc';
       const diffColor = differenz < 0 ? '#b91c1c' : differenz > 0 ? '#b45309' : '#15803d';
-      const diffBg = differenz < 0 ? '#fef2f2' : differenz > 0 ? '#fffbeb' : '#f0fdf4';
-      const diffBorder = differenz < 0 ? '#fca5a5' : differenz > 0 ? '#fcd34d' : '#86efac';
+      const diffBg = lsNegativ ? '#7f1d1d' : differenz < 0 ? '#fef2f2' : differenz > 0 ? '#fffbeb' : '#f0fdf4';
+      const diffBorder = lsNegativ ? '#991b1b' : differenz < 0 ? '#fca5a5' : differenz > 0 ? '#fcd34d' : '#86efac';
+      const diffTxtColor = lsNegativ ? '#fff' : diffColor;
 
       return `<div style="background:#fff;border:${cardBorder};border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.10);margin-bottom:10px;">
         <div style="height:3px;background:${barColor};"></div>
@@ -1265,12 +1267,12 @@ function renderDifferenz(filterQ='', nurMitDiff=false) {
               <div style="font-size:10px;color:#64748b;margin-top:2px;">📦 Außendienst</div>
             </div>
             <div style="background:${diffBg};border:1px solid ${diffBorder};border-radius:8px;padding:8px 10px;text-align:center;">
-              <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:${diffColor};">${differenz>0?'+':''}${differenz}</div>
-              <div style="font-size:10px;color:#64748b;">kg Diff.</div>
+              <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:${diffTxtColor};">${differenz>0?'+':''}${differenz}</div>
+              <div style="font-size:10px;color:${lsNegativ?'#fca5a5':'#64748b'};">kg Diff.</div>
             </div>
-            <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px;text-align:center;">
-              <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:#b91c1c;">${lsSumme} kg</div>
-              <div style="font-size:10px;color:#64748b;margin-top:2px;">📝 Innendienst</div>
+            <div style="background:${lsNegativ?'#7f1d1d':'#fef2f2'};border:1px solid ${lsNegativ?'#7f1d1d':'#fca5a5'};border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:${lsNegativ?'#fca5a5':'#b91c1c'};">${lsSumme} kg</div>
+              <div style="font-size:10px;color:${lsNegativ?'#fca5a5':'#64748b'};margin-top:2px;">${lsNegativ?'⛔':'📝'} Innendienst</div>
             </div>
           </div>
         </div>
