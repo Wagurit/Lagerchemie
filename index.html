@@ -185,7 +185,8 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   // Service Worker registrieren für Auto-Updates
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Cache-Buster: zwingt Browser die sw.js neu zu laden
+      navigator.serviceWorker.register('./sw.js?v=8').then(reg => {
         // Alle 60 Minuten auf Updates prüfen
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
@@ -224,7 +225,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 </div>
 
 <!-- LOGIN SCREEN -->
-<div id="loginScreen" style="display:none; position:fixed; inset:0; background:#0369a1; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;">
+<div id="loginScreen" style="display:none; position:fixed; inset:0; background:#0369a1; z-index:9999; align-items:center; justify-content:center; padding:20px;">
   <div style="background:#fff; border-radius:16px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
     <div style="font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:24px; color:#0369a1; margin-bottom:4px; letter-spacing:-0.3px;">
       Lager<span style="font-weight:400;color:#7dd3fc">chemie</span>
@@ -950,7 +951,7 @@ async function speichereRichtwert(pid, sid) {
 let authToken = null;
 
 function showLogin() {
-  document.getElementById('loginScreen').style.display = 'flex';
+  const ls = document.getElementById('loginScreen'); ls.style.display = 'flex'; ls.style.alignItems = 'center'; ls.style.justifyContent = 'center';
 }
 function hideLogin() {
   document.getElementById('loginScreen').style.display = 'none';
