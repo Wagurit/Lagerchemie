@@ -438,8 +438,15 @@ function gesamtKg(name) {
   return bestaende.filter(b => ids.includes(b.produkt_id)).reduce((s,b) => s + Number(b.menge_kg), 0);
 }
 function richtwert(name) {
-  const p = prodsFor(name).find(p => p.richtwert_kg);
-  return p ? Number(p.richtwert_kg) : null;
+  // Gesamt-Richtwert: Summe aller Gebinde-Richtwerte
+  const rws = prodsFor(name).map(p => Number(p.richtwert_kg)||0);
+  const sum = rws.reduce((s,v)=>s+v,0);
+  return sum > 0 ? sum : null;
+}
+function richtwertProd(pid) {
+  // Richtwert einer einzelnen Gebindegröße
+  const p = produkte.find(p=>p.id===pid);
+  return p && p.richtwert_kg ? Number(p.richtwert_kg) : null;
 }
 function loKg(name, lo) {
   const ids = prodsFor(name).map(p => p.id);
@@ -502,15 +509,18 @@ function renderProdukte() {
 
     const prods = prodsFor(name);
     // Ein Chip pro Gebindegröße × Lagerort wo Bestand > 0
-    const chips = prods.flatMap(p =>
-      ['Garage','Werkstatt'].map(lo => {
+    const chips = prods.flatMap(p => {
+      const rwP = richtwertProd(p.id);
+      return ['Garage','Werkstatt'].map(lo => {
         const kg = getMenge(p.id, lo);
         if (!kg) return '';
+        const kan = (kg / p.gebinde_kg).toFixed(1);
+        const rwTxt = rwP ? ` · RW ${rwP}kg` : '';
         return `<span class="lchip ${lo.toLowerCase()}">
-          <span class="lchip-dot"></span>${lo === 'Garage' ? '🔵' : '🟡'} ${p.gebinde_kg}kg · ${kg} kg
+          <span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} ${p.gebinde_kg}kg: ${kg}kg${rwTxt}
         </span>`;
-      })
-    ).join('');
+      });
+    }).join('');
 
     const rows = prodsFor(name).flatMap(p =>
       ['Garage','Werkstatt'].map(lo => {
@@ -525,7 +535,7 @@ function renderProdukte() {
           <div class="gebinde-mid">
             <div class="menge-display">
               <div class="menge-kg">${kg} <span style="font-size:14px;color:var(--muted)">kg</span></div>
-              <div class="menge-sub">${kan} × ${p.gebinde_kg} kg Gebinde</div>
+              <div class="menge-sub">${kan} Gebinde à ${p.gebinde_kg} kg</div>
             </div>
             <div class="counter-group">
               <button class="cbtn minus" onclick="qb('${p.id}','${lo}',-${p.gebinde_kg},event)">−</button>
@@ -533,9 +543,12 @@ function renderProdukte() {
             </div>
           </div>
           <div class="manual-row">
-            <input type="number" class="manual-inp" id="m_${sid}" placeholder="kg (+rein / −raus)" step="${p.gebinde_kg}">
+            <button id="sign_${sid}" onclick="toggleSign('${sid}')"
+              style="width:42px;height:42px;border-radius:8px;border:1px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;cursor:pointer;flex-shrink:0;">−</button>
+            <input type="number" class="manual-inp" id="m_${sid}" placeholder="Gebinde" step="1" min="0"
+              style="text-align:center;">
             <input type="text" class="note-inp" id="n_${sid}" placeholder="Notiz (Kunde…)">
-            <button class="btn-ok" onclick="mb('${p.id}','${lo}','${sid}')">OK</button>
+            <button class="btn-ok" onclick="mb('${p.id}','${lo}','${sid}',${p.gebinde_kg})">OK</button>
           </div>
         </div>`;
       })
@@ -569,14 +582,33 @@ function renderProdukte() {
 }
 
 async function qb(pid,lo,delta,e) { e.stopPropagation(); await buchen(pid,lo,delta); }
-async function mb(pid,lo,sid) {
+function toggleSign(sid) {
+  const btn = document.getElementById('sign_'+sid);
+  if (!btn) return;
+  if (btn.textContent === '−') {
+    btn.textContent = '+';
+    btn.style.background = '#f0fdf4';
+    btn.style.borderColor = '#86efac';
+    btn.style.color = '#15803d';
+  } else {
+    btn.textContent = '−';
+    btn.style.background = '#fef2f2';
+    btn.style.borderColor = '#fca5a5';
+    btn.style.color = '#b91c1c';
+  }
+}
+
+async function mb(pid,lo,sid,gebinde) {
   const inp=document.getElementById('m_'+sid);
   const noteInp=document.getElementById('n_'+sid);
-  const val=parseFloat(inp.value);
-  if(isNaN(val)||val===0){toast('⚠️ Bitte kg-Wert eingeben');return;}
+  const signBtn=document.getElementById('sign_'+sid);
+  const anzahl=parseFloat(inp.value);
+  if(isNaN(anzahl)||anzahl<=0){toast('⚠️ Bitte Anzahl Gebinde eingeben');return;}
+  const isNeg = !signBtn || signBtn.textContent === '−';
+  const deltaKg = (isNeg ? -1 : 1) * anzahl * gebinde;
   const notiz=noteInp?.value.trim()||'';
   inp.value=''; if(noteInp) noteInp.value='';
-  await buchen(pid,lo,val,notiz);
+  await buchen(pid,lo,deltaKg,notiz);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -609,7 +641,15 @@ function renderUebersicht() {
   const el = document.getElementById('uebersichtContent');
   const gKg = bestaende.filter(b=>b.lagerort==='Garage').reduce((s,b)=>s+Number(b.menge_kg),0);
   const wKg = bestaende.filter(b=>b.lagerort==='Werkstatt').reduce((s,b)=>s+Number(b.menge_kg),0);
-  const niedrig = uniqueNames().filter(n=>{const rw=richtwert(n);return rw&&gesamtKg(n)<rw*0.5;});
+  // Niedrig: prüfe ob irgendeine Gebindegröße unter 50% ihres Richtwerts ist
+  const niedrig = uniqueNames().filter(name => {
+    return prodsFor(name).some(p => {
+      const rw = richtwertProd(p.id);
+      if (!rw) return false;
+      const kg = ['Garage','Werkstatt'].reduce((s,lo)=>s+getMenge(p.id,lo),0);
+      return kg < rw * 0.5;
+    });
+  });
 
   el.innerHTML = `
     <div class="sl" style="margin-top:14px">Lagerübersicht</div>
@@ -719,18 +759,12 @@ function applyUpdate() {
 // ══════════════════════════════════════════════════════════
 function renderVerwaltung(filterQ='') {
   const el = document.getElementById('verwaltungContent');
-  const names = uniqueNames().filter(n =>
-    !filterQ || n.toLowerCase().split(' ').join('').includes(filterQ.toLowerCase().split(' ').join(''))
-  );
+  const norm = s => s.toLowerCase().split(' ').join('');
+  const names = uniqueNames().filter(n => !filterQ || norm(n).includes(norm(filterQ)));
 
   el.innerHTML = `
-    <div class="sl" style="margin-top:14px">Mindestbestände (Richtwerte)</div>
-    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#1e3a5f;font-family:'Barlow',sans-serif;">
-      ℹ️ Produkte erscheinen unter <strong>Nachbestellen</strong> sobald der Bestand unter 50% des Richtwerts fällt.
-    </div>
-
     <!-- Suche -->
-    <div style="position:relative;margin-bottom:10px;">
+    <div style="position:relative;margin-bottom:10px;margin-top:12px;">
       <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
       <input type="search" id="verwaltungSuche" value="${filterQ}"
         oninput="renderVerwaltung(this.value)"
@@ -738,25 +772,59 @@ function renderVerwaltung(filterQ='') {
         style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;">
     </div>
 
-    <div class="card">
-      <div class="card-title">Richtwerte bearbeiten</div>
-      <div class="card-body" style="padding:0">
-        ${names.length ? names.map(name => {
-          const rw = richtwert(name) || '';
-          const sid = name.replace(/[^a-zA-Z0-9]/g,'_');
-          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #e0f2fe;">
-            <div style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#0f172a;">${name}</div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <input type="number" id="rw_${sid}" value="${rw}" placeholder="–"
-                style="width:80px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:14px;color:#0f172a;outline:none;text-align:right;">
-              <span style="font-size:12px;color:#1e3a5f;font-family:'DM Mono',monospace;">kg</span>
-              <button onclick="speichereRichtwert('${name}','${sid}')"
-                style="background:#0369a1;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:0.5px;cursor:pointer;">OK</button>
-            </div>
-          </div>`;
-        }).join('') : '<div style="padding:16px;color:#94a3b8;font-size:13px;text-align:center">Keine Produkte gefunden</div>'}
-      </div>
+    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;font-family:'Barlow',sans-serif;">
+      ℹ️ Richtwert: Produkt erscheint unter <strong>Nachbestellen</strong> wenn Bestand &lt; 50%. Ist-Bestand: direkte Korrektur/Anlieferung ohne Log-Eintrag als Buchung.
     </div>
+
+    ${names.length ? names.map(name => {
+      const prods = prodsFor(name);
+      const gkg = gesamtKg(name);
+      const rw = richtwert(name);
+      const pct = rw ? gkg/rw : 1;
+      const barCls = pct < 0.3 ? 'background:#b91c1c' : pct < 0.5 ? 'background:#b45309' : 'background:#7dd3fc';
+
+      // Pro Gebindegröße: Richtwert-Zeile + Garage/Werkstatt Bestand
+      const zeilen = prods.map(p => {
+        const rwP = richtwertProd(p.id);
+        const rwsid = ('rw_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
+        const lagerorte = ['Garage','Werkstatt'].map(lo => {
+          const kg = getMenge(p.id, lo);
+          const vsid = (p.id+'_'+lo).replace(/[^a-zA-Z0-9]/g,'_');
+          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #f1f5f9;">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;padding:2px 8px;border-radius:4px;white-space:nowrap;min-width:80px;${lo==='Garage'?'background:#e0f2fe;color:#0369a1':'background:#fffbeb;color:#b45309'}">${lo==='Garage'?'🔵':'🟡'} ${lo}</span>
+            <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;flex:1;">${kg} <span style="font-size:11px;color:#64748b">kg</span></div>
+            <input type="number" id="ist_${vsid}" placeholder="kg setzen"
+              style="width:85px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:6px 8px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;text-align:right;">
+            <button onclick="setzeIstBestand('${p.id}','${lo}','${vsid}')"
+              style="background:#0369a1;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">SET</button>
+          </div>`;
+        }).join('');
+        return `<div style="border-bottom:1px solid #e0f2fe;">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f8fafc;">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;color:#475569;flex:1;">${p.gebinde_kg} KG GEBINDE</span>
+            <span style="font-size:11px;color:#64748b;font-family:'DM Mono',monospace;">Richtwert:</span>
+            <input type="number" id="${rwsid}" value="${rwP||\'\'}" placeholder="–"
+              style="width:75px;background:#fff;border:1px solid #7dd3fc;border-radius:6px;padding:5px 7px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;text-align:right;">
+            <span style="font-size:11px;color:#64748b;font-family:'DM Mono',monospace;">kg</span>
+            <button onclick="speichereRichtwert('${p.id}','${rwsid}')"
+              style="background:#475569;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">RW</button>
+          </div>
+          ${lagerorte}
+        </div>`;
+      }).join('');
+
+      return `<div class="card" style="margin-bottom:10px;">
+        <div style="height:3px;${barCls};border-radius:10px 10px 0 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 6px;background:#f0f9ff;border-bottom:1px solid #e0f2fe;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#0f172a;">${name}</div>
+          <div style="text-align:right;">
+            <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:500;">${gkg} kg</div>
+            ${rw?`<div style="font-size:10px;color:#64748b">Richtwert: ${rw} kg</div>`:''}
+          </div>
+        </div>
+        ${zeilen}
+      </div>`;
+    }).join('') : '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.7)">Keine Produkte gefunden</div>'}
 
     <!-- Techniker-Kürzel -->
     <div class="sl">Techniker-Kürzel</div>
@@ -821,28 +889,58 @@ async function loescheKuerzel(id) {
   } catch(e) { sync('error'); toast('❌ ' + e.message); }
 }
 
-async function speichereRichtwert(name, sid) {
+async function setzeIstBestand(pid, lo, vsid) {
+  const inp = document.getElementById('ist_' + vsid);
+  const val = parseFloat(inp.value);
+  if (isNaN(val) || val < 0) { toast('⚠️ Bitte gültigen kg-Wert eingeben'); return; }
+  sync('syncing');
+  try {
+    // Direktes Setzen des Bestands (kein Delta — Korrektur/Inventur)
+    await api.upsert('lager_bestand', {
+      produkt_id: pid, lagerort: lo, menge_kg: val,
+      aktualisiert_am: new Date().toISOString()
+    });
+    // Auch als Buchung loggen (Inventur/Korrektur)
+    const alt = getMenge(pid, lo);
+    const delta = val - alt;
+    if (delta !== 0) {
+      await api.post('lager_buchungen', {
+        produkt_id: pid, lagerort: lo, menge_kg: delta,
+        notiz: 'Inventur/Korrektur', kuerzel: meinKuerzel||null
+      });
+      buchungen.unshift({ produkt_id:pid, lagerort:lo, menge_kg:delta, notiz:'Inventur/Korrektur', kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
+    }
+    // Lokalen State updaten
+    const idx = bestaende.findIndex(b => b.produkt_id===pid && b.lagerort===lo);
+    if (idx>=0) bestaende[idx].menge_kg = val;
+    else bestaende.push({ produkt_id:pid, lagerort:lo, menge_kg:val });
+    inp.value = '';
+    sync('ok');
+    const pname = produkte.find(p=>p.id===pid)?.name||'';
+    renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
+    renderProdukte(); renderUebersicht(); renderLog();
+    toast(`✅ ${pname} ${lo}: ${val} kg gesetzt`);
+  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+}
+
+async function speichereRichtwert(pid, sid) {
+  // Richtwert pro einzelner Gebindegröße speichern
   const inp = document.getElementById('rw_' + sid);
   const val = parseFloat(inp.value) || null;
   sync('syncing');
   try {
-    // Alle Produkte mit diesem Namen updaten (alle Gebindegrößen)
-    const ids = prodsFor(name).map(p => p.id);
-    // Erste Zeile bekommt den Richtwert, Rest null (damit richtwert() nur einmal zurückgibt)
-    for (let i = 0; i < ids.length; i++) {
-      await fetch(`${SUPABASE_URL}/rest/v1/lager_produkte?id=eq.${ids[i]}`, {
-        method: 'PATCH',
-        headers: { ...api.h(), Prefer: 'return=minimal' },
-        body: JSON.stringify({ richtwert_kg: i === 0 ? val : null })
-      });
-      // Lokalen State updaten
-      const p = produkte.find(p => p.id === ids[i]);
-      if (p) p.richtwert_kg = i === 0 ? val : null;
-    }
+    await fetch(`${SUPABASE_URL}/rest/v1/lager_produkte?id=eq.${pid}`, {
+      method: 'PATCH',
+      headers: { ...api.h(), Prefer: 'return=minimal' },
+      body: JSON.stringify({ richtwert_kg: val })
+    });
+    const p = produkte.find(p => p.id === pid);
+    if (p) p.richtwert_kg = val;
     sync('ok');
-    renderVerwaltung();
+    renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
     renderUebersicht();
-    toast(`✅ Richtwert ${name}: ${val ? val + ' kg' : 'entfernt'}`);
+    const pname = p ? p.name + ' ' + p.gebinde_kg + 'kg' : '';
+    toast(`✅ Richtwert ${pname}: ${val ? val + ' kg' : 'entfernt'}`);
   } catch(e) { sync('error'); toast('❌ ' + e.message); }
 }
 
@@ -873,8 +971,9 @@ async function doLogin() {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error_description || data.msg || 'Login fehlgeschlagen');
     authToken = data.access_token;
-    // Token im localStorage speichern (bleibt nach Reload)
+    // Token + Refresh Token speichern
     localStorage.setItem('lager_token', authToken);
+    localStorage.setItem('lager_refresh', data.refresh_token);
     localStorage.setItem('lager_token_exp', Date.now() + (data.expires_in * 1000));
     hideLogin();
     await init();
@@ -887,15 +986,40 @@ async function doLogin() {
 
 async function checkSession() {
   const token = localStorage.getItem('lager_token');
+  const refresh = localStorage.getItem('lager_refresh');
   const exp = parseInt(localStorage.getItem('lager_token_exp') || '0');
+
   if (token && Date.now() < exp) {
+    // Token noch gültig
     authToken = token;
     hideLogin();
     await init();
     renderVerwaltung();
+  } else if (refresh) {
+    // Token abgelaufen aber Refresh Token vorhanden -> automatisch erneuern
+    try {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+        method: 'POST',
+        headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refresh })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error('Refresh fehlgeschlagen');
+      authToken = data.access_token;
+      localStorage.setItem('lager_token', authToken);
+      localStorage.setItem('lager_refresh', data.refresh_token);
+      localStorage.setItem('lager_token_exp', Date.now() + (data.expires_in * 1000));
+      hideLogin();
+      await init();
+      renderVerwaltung();
+    } catch(e) {
+      // Refresh fehlgeschlagen -> neu einloggen
+      localStorage.removeItem('lager_token');
+      localStorage.removeItem('lager_refresh');
+      localStorage.removeItem('lager_token_exp');
+      showLogin();
+    }
   } else {
-    localStorage.removeItem('lager_token');
-    localStorage.removeItem('lager_token_exp');
     showLogin();
   }
 }
@@ -903,6 +1027,7 @@ async function checkSession() {
 function doLogout() {
   authToken = null;
   localStorage.removeItem('lager_token');
+  localStorage.removeItem('lager_refresh');
   localStorage.removeItem('lager_token_exp');
   showLogin();
 }
