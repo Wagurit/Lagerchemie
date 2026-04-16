@@ -184,9 +184,12 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <script>
   // Service Worker registrieren für Auto-Updates
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      // Cache-Buster: zwingt Browser die sw.js neu zu laden
-      navigator.serviceWorker.register('./sw.js?v=8').then(reg => {
+    window.addEventListener('load', async () => {
+      // Alle alten SWs deregistrieren um Cache-Probleme zu vermeiden
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.unregister();
+      // Neu registrieren
+      navigator.serviceWorker.register('./sw.js?v=9').then(reg => {
         // Alle 60 Minuten auf Updates prüfen
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
