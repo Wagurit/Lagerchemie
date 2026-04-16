@@ -1,4 +1,4 @@
-const CACHE = 'lagerchemie-v10';
+const CACHE = 'lagerchemie-v11';
 const ASSETS = ['./', './index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

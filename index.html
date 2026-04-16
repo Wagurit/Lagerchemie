@@ -262,6 +262,8 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   <button class="tab" onclick="setTab('uebersicht',this)">📊 Übersicht</button>
   <button class="tab" onclick="setTab('log',this)">📋 Log</button>
   <button class="tab" onclick="setTab('verwaltung',this)">⚙️ Verwaltung</button>
+  <button class="tab" onclick="setTab('ls',this)">📝 LS Austrag</button>
+  <button class="tab" onclick="setTab('differenz',this)">⚖️ Differenz</button>
 </div>
 
 <div class="scroll-area">
@@ -297,6 +299,16 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   <!-- VERWALTUNG -->
   <div class="view" id="view-verwaltung">
     <div id="verwaltungContent"></div>
+  </div>
+
+  <!-- LS AUSTRAG -->
+  <div class="view" id="view-ls">
+    <div id="lsContent"></div>
+  </div>
+
+  <!-- DIFFERENZ -->
+  <div class="view" id="view-differenz">
+    <div id="differenzContent"></div>
   </div>
 
 </div>
@@ -371,7 +383,7 @@ const api = {
 // ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
-let produkte = [], bestaende = [], buchungen = [], userKuerzel = [];
+let produkte = [], bestaende = [], buchungen = [], userKuerzel = [], lsAustraege = [], kunden = [];
 let aktFilter = 'alle';
 let meinKuerzel = '';
 let meineUserId = null;
@@ -388,17 +400,19 @@ async function init() {
       meineUserId = payload.sub;
     } catch(e) {}
 
-    [produkte, bestaende, buchungen, userKuerzel] = await Promise.all([
+    [produkte, bestaende, buchungen, userKuerzel, lsAustraege, kunden] = await Promise.all([
       api.get('lager_produkte','order=name.asc,gebinde_kg.desc'),
       api.get('lager_bestand','order=lagerort.asc'),
       api.get('lager_buchungen','order=erstellt_am.desc&limit=150'),
-      api.get('lager_user_kuerzel','order=kuerzel.asc')
+      api.get('lager_user_kuerzel','order=kuerzel.asc'),
+      api.get('lager_ls_austrag','order=erstellt_am.desc&limit=300'),
+      api.get('lager_kunden','order=name.asc')
     ]);
     // Eigenes Kürzel setzen
     const meins = userKuerzel.find(u => u.user_id === meineUserId);
     meinKuerzel = meins ? meins.kuerzel : '';
     sync('ok');
-    renderProdukte(); renderUebersicht(); renderLog();
+    renderProdukte(); renderUebersicht(); renderLog(); renderVerwaltung(); renderLS(); renderDifferenz();
   } catch(e) { sync('error'); toast('❌ Verbindungsfehler: ' + e.message); }
 }
 
@@ -1006,6 +1020,257 @@ function doLogout() {
 }
 
 
+checkSession();
+
+// ══════════════════════════════════════════════════════════
+// LS AUSTRAG
+// ══════════════════════════════════════════════════════════
+
+function renderLS() {
+  const el = document.getElementById('lsContent');
+  if (!el) return;
+  const norm = s => s.toLowerCase().split(' ').join('');
+
+  el.innerHTML = `
+    <div class="sl" style="margin-top:14px">Lieferschein Austrag</div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title">Neuer LS Austrag</div>
+      <div class="card-body">
+
+        <!-- Produkt Suche -->
+        <div class="f">
+          <label>Produkt</label>
+          <div style="position:relative;">
+            <input type="text" id="ls-produkt-input" placeholder="Produkt suchen… z.B. BZ 300"
+              autocomplete="off" oninput="lsProduktSuche(this.value)"
+              style="width:100%;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;">
+            <div id="ls-produkt-list" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #7dd3fc;border-top:none;border-radius:0 0 8px 8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:200px;overflow-y:auto;"></div>
+          </div>
+          <input type="hidden" id="ls-produkt-id">
+        </div>
+
+        <!-- Menge -->
+        <div class="f">
+          <label>Menge (kg)</label>
+          <input type="number" id="ls-menge" placeholder="z.B. 40" step="0.5"
+            style="width:100%;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;">
+        </div>
+
+        <!-- Kunde -->
+        <div class="f">
+          <label>Kunde</label>
+          <div style="position:relative;">
+            <input type="text" id="ls-kunde-input" placeholder="Kunde suchen oder neu eingeben…"
+              autocomplete="off" oninput="lsKundeSuche(this.value)"
+              style="width:100%;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;">
+            <div id="ls-kunde-list" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #7dd3fc;border-top:none;border-radius:0 0 8px 8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:180px;overflow-y:auto;"></div>
+          </div>
+        </div>
+
+        <button onclick="lsAustragSpeichern()"
+          style="width:100%;padding:12px;border-radius:8px;background:var(--surface2);color:#fff;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.5px;cursor:pointer;">
+          📝 LS Austrag speichern
+        </button>
+      </div>
+    </div>
+
+    <!-- Chronologische Chips -->
+    <div class="sl">Einträge</div>
+    ${lsAustraege.length ? `
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${lsAustraege.map(ls => {
+        const p = produkte.find(p => p.id === ls.produkt_id);
+        const datum = new Date(ls.erstellt_am).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+        return `<div style="background:#fff;border:1px solid #bae6fd;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);display:flex;align-items:center;gap:12px;">
+          <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:#b91c1c;white-space:nowrap;">
+            −${ls.menge_kg} kg
+          </div>
+          <div style="flex:1;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#0f172a;">${p?p.name:'–'}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:#64748b;margin-top:2px;">
+              ${datum} · ${ls.kunde}${ls.kuerzel?' · <strong>'+ls.kuerzel+'</strong>':''}
+            </div>
+          </div>
+          <span style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:#b91c1c;white-space:nowrap;">LS</span>
+        </div>`;
+      }).join('')}
+    </div>` : '<div class="empty">Noch keine LS Austraege</div>'}
+  `;
+}
+
+function lsProduktSuche(q) {
+  const norm = s => s.toLowerCase().split(' ').join('');
+  const list = document.getElementById('ls-produkt-list');
+  if (!q) { list.style.display = 'none'; return; }
+  const matches = uniqueNames().filter(n => norm(n).includes(norm(q)));
+  if (!matches.length) { list.style.display = 'none'; return; }
+  list.innerHTML = matches.slice(0,8).map(name => {
+    const prods = prodsFor(name);
+    return prods.map(p =>
+      `<div onclick="lsProduktWaehlen('${p.id}','${name} (${p.gebinde_kg}kg)')"
+        style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #e0f2fe;font-family:'Barlow',sans-serif;font-size:14px;color:#0f172a;"
+        onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background=''">
+        <strong>${name}</strong> <span style="color:#64748b;font-size:12px;">${p.gebinde_kg}kg Gebinde</span>
+      </div>`
+    ).join('');
+  }).join('');
+  list.style.display = 'block';
+}
+
+function lsProduktWaehlen(pid, label) {
+  document.getElementById('ls-produkt-id').value = pid;
+  document.getElementById('ls-produkt-input').value = label;
+  document.getElementById('ls-produkt-list').style.display = 'none';
+}
+
+function lsKundeSuche(q) {
+  const list = document.getElementById('ls-kunde-list');
+  const matches = kunden.filter(k => k.name.toLowerCase().includes(q.toLowerCase()));
+  if (!matches.length && !q) { list.style.display = 'none'; return; }
+  const items = matches.slice(0,8).map(k =>
+    `<div onclick="lsKundeWaehlen('${k.name}')"
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #e0f2fe;font-family:'Barlow',sans-serif;font-size:14px;color:#0f172a;"
+      onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background=''">
+      ${k.name}
+    </div>`
+  ).join('');
+  list.innerHTML = items || '';
+  list.style.display = matches.length ? 'block' : 'none';
+}
+
+function lsKundeWaehlen(name) {
+  document.getElementById('ls-kunde-input').value = name;
+  document.getElementById('ls-kunde-list').style.display = 'none';
+}
+
+async function lsAustragSpeichern() {
+  const pid = document.getElementById('ls-produkt-id').value;
+  const menge = parseFloat(document.getElementById('ls-menge').value);
+  const kunde = document.getElementById('ls-kunde-input').value.trim();
+  if (!pid) { toast('⚠️ Bitte Produkt auswählen'); return; }
+  if (isNaN(menge) || menge <= 0) { toast('⚠️ Bitte Menge eingeben'); return; }
+  if (!kunde) { toast('⚠️ Bitte Kunde eingeben'); return; }
+  sync('syncing');
+  try {
+    // LS Austrag speichern
+    const res = await api.post('lager_ls_austrag', {
+      produkt_id: pid, menge_kg: menge, kunde, kuerzel: meinKuerzel||null
+    });
+    lsAustraege.unshift(res[0]);
+
+    // Neuen Kunden anlegen falls noch nicht vorhanden
+    if (!kunden.find(k => k.name.toLowerCase() === kunde.toLowerCase())) {
+      try {
+        const kr = await api.post('lager_kunden', { name: kunde });
+        kunden.push(kr[0]);
+        kunden.sort((a,b) => a.name.localeCompare(b.name));
+      } catch(e) {} // Ignorieren falls Kunde schon existiert (UNIQUE constraint)
+    }
+
+    // Felder leeren
+    document.getElementById('ls-produkt-id').value = '';
+    document.getElementById('ls-produkt-input').value = '';
+    document.getElementById('ls-menge').value = '';
+    document.getElementById('ls-kunde-input').value = '';
+
+    sync('ok');
+    renderLS();
+    renderDifferenz();
+    const pname = produkte.find(p=>p.id===pid)?.name||'';
+    toast(`📝 LS Austrag: ${menge} kg ${pname} → ${kunde}`);
+  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+}
+
+// ══════════════════════════════════════════════════════════
+// DIFFERENZ
+// ══════════════════════════════════════════════════════════
+
+function renderDifferenz(filterQ='') {
+  const el = document.getElementById('differenzContent');
+  if (!el) return;
+  const norm = s => s.toLowerCase().split(' ').join('');
+
+  // Alle Produkte die Bestand ODER LS Austraege haben
+  const relevanteNames = uniqueNames().filter(name => {
+    if (filterQ && !norm(name).includes(norm(filterQ))) return false;
+    const hatBestand = gesamtKg(name) > 0;
+    const hatLS = lsAustraege.some(ls => {
+      const p = produkte.find(p => p.id === ls.produkt_id);
+      return p && p.name === name;
+    });
+    return hatBestand || hatLS;
+  });
+
+  el.innerHTML = `
+    <div class="search-wrap" style="margin-top:12px;">
+      <span class="search-icon">🔍</span>
+      <input type="search" class="search-input" id="differenzSuche" value="${filterQ}"
+        oninput="renderDifferenz(this.value)" placeholder="Produkt suchen…">
+    </div>
+    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">
+      ℹ️ Zeigt die Differenz zwischen Lagerbestand und LS Austraegen pro Produkt. Negative Differenz = mehr ausgetragen als im Lager gebucht.
+    </div>
+
+    ${relevanteNames.length ? relevanteNames.map(name => {
+      const prods = prodsFor(name);
+      const lagerKg = gesamtKg(name);
+
+      // LS Summe für dieses Produkt (alle Gebindegrößen zusammen)
+      const lsSumme = lsAustraege
+        .filter(ls => { const p = produkte.find(p=>p.id===ls.produkt_id); return p && p.name === name; })
+        .reduce((s, ls) => s + Number(ls.menge_kg), 0);
+
+      const differenz = lagerKg - lsSumme;
+      const diffColor = differenz < 0 ? '#b91c1c' : differenz === 0 ? '#b45309' : '#15803d';
+      const diffBg = differenz < 0 ? '#fef2f2' : differenz === 0 ? '#fffbeb' : '#f0fdf4';
+      const diffBorder = differenz < 0 ? '#fca5a5' : differenz === 0 ? '#fcd34d' : '#86efac';
+      const barColor = differenz < 0 ? '#b91c1c' : differenz === 0 ? '#b45309' : '#7dd3fc';
+
+      // LS Einträge für dieses Produkt
+      const lsEntries = lsAustraege.filter(ls => {
+        const p = produkte.find(p=>p.id===ls.produkt_id);
+        return p && p.name === name;
+      });
+
+      return `<div class="card" style="margin-bottom:10px;">
+        <div style="height:3px;background:${barColor};"></div>
+        <div style="padding:12px 14px;border-bottom:1px solid #e0f2fe;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#0f172a;flex:1;">${name}</div>
+            <div style="background:${diffBg};border:1px solid ${diffBorder};border-radius:8px;padding:6px 12px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:${diffColor};">${differenz > 0?'+':''}${differenz} kg</div>
+              <div style="font-size:10px;color:#64748b;">Differenz</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:#f0f9ff;border:1px solid #7dd3fc;border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:var(--surface2);">${lagerKg} kg</div>
+              <div style="font-size:11px;color:#64748b;margin-top:2px;">📦 Lagerbestand</div>
+            </div>
+            <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px;text-align:center;">
+              <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:#b91c1c;">${lsSumme} kg</div>
+              <div style="font-size:11px;color:#64748b;margin-top:2px;">📝 LS Austraege</div>
+            </div>
+          </div>
+        </div>
+        ${lsEntries.length ? `
+        <div style="padding:10px 14px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">LS Einträge</div>
+          ${lsEntries.map(ls => {
+            const datum = new Date(ls.erstellt_am).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+            return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;">
+              <span style="font-family:'DM Mono',monospace;font-size:13px;color:#b91c1c;min-width:60px;">−${ls.menge_kg} kg</span>
+              <span style="flex:1;font-size:13px;color:#0f172a;">${ls.kunde}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:11px;color:#94a3b8;">${datum}${ls.kuerzel?' · '+ls.kuerzel:''}</span>
+            </div>`;
+          }).join('')}
+        </div>` : ''}
+      </div>`;
+    }).join('') : '<div class="empty">Keine Produkte mit Bestand oder LS Austraegen</div>'}
+  `;
+}
+
+// START
 checkSession();
 </script>
 </body>
