@@ -185,7 +185,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   // Service Worker registrieren für Auto-Updates
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=23').then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=24').then(reg => {
         // Alle 60 Minuten auf Updates prüfen
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
@@ -568,7 +568,7 @@ function renderProdukte() {
         if (!kg) return '';
         const rwTxt = rwP ? ` · RW ${rwP}kg` : '';
         return `<span class="lchip ${lo.toLowerCase()}">
-          <span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} ${p.gebinde_kg}kg: ${kg}kg${rwTxt}
+          <span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> ${kg}kg${rwTxt}
         </span>`;
       });
     }).join('');
@@ -801,12 +801,24 @@ function applyUpdate() {
 // VERWALTUNG – Richtwerte anpassen
 // ══════════════════════════════════════════════════════════
 function renderVerwaltung(filterQ='') {
+  // Aktives Element vor Re-Render merken
+  const activeId = document.activeElement?.id;
   const el = document.getElementById('verwaltungContent');
   const names = uniqueNames().filter(n => !filterQ || norm(n).includes(norm(filterQ)));
 
   el.innerHTML = `
-    <!-- NEUES PRODUKT OBEN -->
-    <div class="card" style="margin-top:12px;margin-bottom:10px;">
+    <!-- SUCHE GANZ OBEN -->
+    <div style="position:relative;margin:12px 0 10px;">
+      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
+      <input type="search" id="verwaltungSuche" value="${filterQ}"
+        oninput="renderVerwaltung(this.value)"
+        placeholder="Produkt suchen… z.B. BZ 300"
+        style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;"
+        data-focus="1">
+    </div>
+
+    <!-- NEUES PRODUKT DARUNTER -->
+    <div class="card" style="margin-bottom:10px;">
       <div class="card-title">＋ Neues Produkt anlegen</div>
       <div class="card-body">
         <div class="r2">
@@ -823,15 +835,6 @@ function renderVerwaltung(filterQ='') {
           </div>
         </div>
       </div>
-    </div>
-
-    <div style="position:relative;margin:0 0 10px;">
-      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
-      <input type="search" id="verwaltungSuche" value="${filterQ}"
-        oninput="renderVerwaltung(this.value)"
-        placeholder="Produkt suchen… z.B. BZ 300"
-        style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;"
-        data-focus="1">
     </div>
     <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">
       ℹ️ <strong>SET</strong> = Ist-Bestand direkt setzen (Inventur/Anlieferung) · <strong>RW</strong> = Richtwert pro Gebindegröße
@@ -921,6 +924,18 @@ function renderVerwaltung(filterQ='') {
       </div>
     </div>
   `;
+  // Fokus wiederherstellen nach Re-Render
+  setTimeout(() => {
+    if (activeId) {
+      const el = document.getElementById(activeId);
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) {
+        el.focus();
+        if (el.type === 'search' || el.type === 'text') {
+          el.setSelectionRange(el.value.length, el.value.length);
+        }
+      }
+    }
+  }, 0);
 }
 
 async function speichereKuerzel() {
@@ -1172,6 +1187,7 @@ checkSession();
 // ══════════════════════════════════════════════════════════
 
 function renderLS(filterQ='') {
+  const activeId = document.activeElement?.id;
   const el = document.getElementById('lsContent');
   if (!el) return;
 
@@ -1211,7 +1227,7 @@ function renderLS(filterQ='') {
         const kan = p.gebinde_kg ? (lsBst / p.gebinde_kg).toFixed(1) : '–';
         const low = lsBst <= 0;
         return `<span class="lchip" style="background:${low?'#fef2f2':'#fff7ed'};border-color:${low?'#fca5a5':'#fcd34d'};color:${low?'#b91c1c':'#b45309'};">
-          <span class="lchip-dot"></span>📝 ${p.gebinde_kg}kg: ${lsBst} kg (${kan} Geb.)
+          <span class="lchip-dot"></span>📝 <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> ${lsBst} kg <span style="opacity:0.6;font-size:10px;">(${kan} Geb.)</span>
         </span>`;
       }).join('');
 
@@ -1302,9 +1318,12 @@ function renderLS(filterQ='') {
   setTimeout(() => {
     offene.forEach(id => { const c = document.getElementById(id); if(c) c.classList.add('open'); });
     if (scrollEl) scrollEl.scrollTop = scrollTop;
-    if (filterQ !== '') {
-      const sf = document.getElementById('lsSuche');
-      if (sf) { sf.focus(); sf.setSelectionRange(sf.value.length, sf.value.length); }
+    if (activeId) {
+      const el2 = document.getElementById(activeId);
+      if (el2 && (el2.tagName === 'INPUT' || el2.tagName === 'SELECT')) {
+        el2.focus();
+        if (el2.type === 'search' || el2.type === 'text') el2.setSelectionRange(el2.value.length, el2.value.length);
+      }
     }
   }, 0);
 }
