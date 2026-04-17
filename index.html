@@ -185,7 +185,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   // Service Worker registrieren für Auto-Updates
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=16').then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=17').then(reg => {
         // Alle 60 Minuten auf Updates prüfen
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
@@ -1136,8 +1136,49 @@ function renderLS() {
   const el = document.getElementById('lsContent');
   if (!el) return;
 
+  // LS-Bestand Chips: alle Produkte mit LS-Bestand anzeigen
+  const lsChipsHtml = uniqueNames().map(name => {
+    const lsKg = getLsBestandName(name);
+    if (lsKg === null) return ''; // noch keine Inventur
+    const prods = prodsFor(name);
+    const chips = prods.map(p => {
+      const pid = p.id;
+      const lsBst = getLsBestand(pid);
+      if (lsBst === null) return '';
+      const kan = p.gebinde_kg ? (lsBst / p.gebinde_kg).toFixed(1) : '–';
+      const isLow = lsBst <= 0;
+      return `<span class="lchip" style="background:${isLow?'#fef2f2':'#fff7ed'};border-color:${isLow?'#fca5a5':'#fcd34d'};color:${isLow?'#b91c1c':'#b45309'};">
+        <span class="lchip-dot"></span>📝 ${p.gebinde_kg}kg: ${lsBst} kg (${kan} Geb.)
+      </span>`;
+    }).filter(Boolean).join('');
+    if (!chips) return '';
+    const lsKgGes = lsKg;
+    const isLow = lsKgGes <= 0;
+    return `<div class="pc" style="margin-bottom:10px;">
+      <div class="pc-bar" style="background:${isLow?'#b91c1c':'#f59e0b'};"></div>
+      <div class="pc-header" style="cursor:default;">
+        <div class="pc-name">${name}</div>
+        <div>
+          <div class="pc-total-kg" style="color:${isLow?'#b91c1c':'#b45309'}">${lsKgGes} kg</div>
+          <div class="pc-total-rw">📝 LS-Bestand</div>
+        </div>
+      </div>
+      <div class="chip-row">${chips}</div>
+    </div>`;
+  }).filter(Boolean).join('');
+
   el.innerHTML = `
-    <div class="sl" style="margin-top:14px">Lieferschein Austrag</div>
+    ${lsChipsHtml ? `
+    <div class="sl" style="margin-top:14px">LS-Bestand (Innendienst)</div>
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#b45309;">
+      ℹ️ Zeigt den aktuellen LS-Bestand. Entnahme nicht möglich wenn 0 kg. Inventur/Eingang über Verwaltung.
+    </div>
+    ${lsChipsHtml}` : `
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 14px;margin-top:14px;margin-bottom:10px;font-size:13px;color:#b45309;">
+      ⚠️ Noch keine Inventur durchgeführt. Bitte zuerst in <strong>Verwaltung → Inventur (SET)</strong> die Bestände erfassen.
+    </div>`}
+
+    <div class="sl">Neuer LS Austrag</div>
     <div class="card" style="margin-bottom:14px;">
       <div class="card-title">Neuer LS Austrag</div>
       <div class="card-body">
