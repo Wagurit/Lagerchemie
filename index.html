@@ -185,7 +185,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   // Service Worker registrieren für Auto-Updates
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=21').then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=23').then(reg => {
         // Alle 60 Minuten auf Updates prüfen
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
@@ -805,12 +805,33 @@ function renderVerwaltung(filterQ='') {
   const names = uniqueNames().filter(n => !filterQ || norm(n).includes(norm(filterQ)));
 
   el.innerHTML = `
-    <div style="position:relative;margin:12px 0 10px;">
+    <!-- NEUES PRODUKT OBEN -->
+    <div class="card" style="margin-top:12px;margin-bottom:10px;">
+      <div class="card-title">＋ Neues Produkt anlegen</div>
+      <div class="card-body">
+        <div class="r2">
+          <div class="f"><label>Produktname</label><input type="text" id="neu-name" placeholder="z.B. BZ 999"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-gebinde')?.focus();}"></div>
+          <div class="f"><label>Gebinde (kg)</label><input type="number" id="neu-gebinde" placeholder="z.B. 20"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-richtwert')?.focus();}"></div>
+        </div>
+        <div class="r2">
+          <div class="f"><label>Richtwert (kg, optional)</label><input type="number" id="neu-richtwert" placeholder="optional"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();speichereNeuesProdukt();}"></div>
+          <div class="f" style="display:flex;align-items:flex-end;">
+            <button onclick="speichereNeuesProdukt()" class="btn-save" style="margin-top:0;">＋ Anlegen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="position:relative;margin:0 0 10px;">
       <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
       <input type="search" id="verwaltungSuche" value="${filterQ}"
         oninput="renderVerwaltung(this.value)"
         placeholder="Produkt suchen… z.B. BZ 300"
-        style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;">
+        style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;"
+        data-focus="1">
     </div>
     <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">
       ℹ️ <strong>SET</strong> = Ist-Bestand direkt setzen (Inventur/Anlieferung) · <strong>RW</strong> = Richtwert pro Gebindegröße
@@ -874,24 +895,6 @@ function renderVerwaltung(filterQ='') {
     }).join('')}
 
     <!-- Techniker-Kürzel -->
-    <div class="sl">Neues Produkt anlegen</div>
-    <div class="info-box">ℹ️ Nach dem Anlegen bitte direkt in Verwaltung Inventur (SET) durchführen damit Außen- und Innendienst einen Startwert haben.</div>
-    <div class="card" style="margin-bottom:10px;">
-      <div class="card-title">Produkt anlegen</div>
-      <div class="card-body">
-        <div class="r2">
-          <div class="f"><label>Produktname</label><input type="text" id="neu-name" placeholder="z.B. BZ 999"></div>
-          <div class="f"><label>Gebinde (kg)</label><input type="number" id="neu-gebinde" placeholder="z.B. 20"></div>
-        </div>
-        <div class="r2">
-          <div class="f"><label>Richtwert (kg, optional)</label><input type="number" id="neu-richtwert" placeholder="optional"></div>
-          <div class="f" style="display:flex;align-items:flex-end;">
-            <button onclick="speichereNeuesProdukt()" class="btn-save" style="margin-top:0;">＋ Anlegen</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="sl">Techniker-Kürzel</div>
     <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">
       ℹ️ Kürzel erscheinen im Log. User-ID findest du in Supabase → Authentication → Users.
@@ -1188,7 +1191,8 @@ function renderLS(filterQ='') {
     <div class="search-wrap" style="margin-top:12px;">
       <span class="search-icon">🔍</span>
       <input type="search" class="search-input" id="lsSuche" value="${filterQ}"
-        oninput="renderLS(this.value)" placeholder="Produkt suchen… z.B. BZ 300">
+        oninput="renderLS(this.value)" placeholder="Produkt suchen… z.B. BZ 300"
+        data-focus="1">
     </div>
 
     ${!hatInventur ? `<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px;color:#b45309;">
@@ -1294,10 +1298,14 @@ function renderLS(filterQ='') {
     </div>` : '<div class="empty">Noch keine LS Austraege</div>'}
   `;
 
-  // Offene Karten und Scroll wiederherstellen
+  // Offene Karten, Scroll und Suchfeld-Fokus wiederherstellen
   setTimeout(() => {
     offene.forEach(id => { const c = document.getElementById(id); if(c) c.classList.add('open'); });
     if (scrollEl) scrollEl.scrollTop = scrollTop;
+    if (filterQ !== '') {
+      const sf = document.getElementById('lsSuche');
+      if (sf) { sf.focus(); sf.setSelectionRange(sf.value.length, sf.value.length); }
+    }
   }, 0);
 }
 
@@ -1436,7 +1444,8 @@ function renderDifferenz(filterQ='', nurMitDiff=false) {
       <span class="search-icon">🔍</span>
       <input type="search" class="search-input" id="differenzSuche" value="${filterQ}"
         oninput="renderDifferenz(this.value, document.getElementById('diffFilterBtn').dataset.active==='1')"
-        placeholder="Produkt suchen…">
+        placeholder="Produkt suchen…"
+        data-focus="1">
     </div>
     <div style="display:flex;gap:8px;margin-bottom:10px;">
       <button id="diffFilterBtn" data-active="${nurMitDiff?'1':'0'}"
@@ -1530,6 +1539,13 @@ function renderDifferenz(filterQ='', nurMitDiff=false) {
       </div>`;
     }).join('') : '<div class="empty">Keine Einträge vorhanden</div>'}
   `;
+  // Suchfeld-Fokus wiederherstellen
+  if (filterQ !== '') {
+    setTimeout(() => {
+      const sf = document.getElementById('differenzSuche');
+      if (sf) { sf.focus(); sf.setSelectionRange(sf.value.length, sf.value.length); }
+    }, 0);
+  }
 }
 
 // START
