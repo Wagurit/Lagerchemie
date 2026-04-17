@@ -185,7 +185,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   // Service Worker registrieren für Auto-Updates
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=20').then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=21').then(reg => {
         // Alle 60 Minuten auf Updates prüfen
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
@@ -1006,19 +1006,22 @@ async function setzeIstBestand(pid, lo, vsid) {
     if (bidx>=0) bestaende[bidx].menge_kg = val;
     else bestaende.push({ produkt_id:pid, lagerort:lo, menge_kg:val });
 
-    // LS-Bestand: Summe über alle Lagerorte dieses Produkts neu berechnen und setzen
-    // (LS-Bestand ist pro Produkt, nicht pro Lagerort)
-    const lsAlt = getLsBestand(pid) || 0;
-    // Gesamter neuer Außendienst-Bestand für dieses Produkt
-    const neuerGesamtAD = ['Garage','Werkstatt'].reduce((s,l) => {
-      if (l === lo) return s + val;
-      return s + getMenge(pid, l);
-    }, 0);
-    await lsBestandSetzen(pid, neuerGesamtAD, 'Inventur/Reset');
+    // LS-Bestand: Gesamtbestand über ALLE Gebindegrößen + Lagerorte dieses Produktnamens
+    // Der LS-Bestand kennt keinen Lagerort — er ist der Gesamtbestand laut Innendienst
+    const pname = produkte.find(p=>p.id===pid)?.name||'';
+    const alleProdsDesNamens = prodsFor(pname);
+    for (const prod of alleProdsDesNamens) {
+      // Für jede Gebindegröße: Gesamtbestand AD (Garage + Werkstatt)
+      const adGesamt = ['Garage','Werkstatt'].reduce((s,l) => {
+        // Wenn das die aktuelle Gebindegröße + Lagerort ist: neuen Wert nutzen
+        if (prod.id === pid && l === lo) return s + val;
+        return s + getMenge(prod.id, l);
+      }, 0);
+      await lsBestandSetzen(prod.id, adGesamt, 'Inventur/Reset');
+    }
 
     inp.value = '';
     sync('ok');
-    const pname = produkte.find(p=>p.id===pid)?.name||'';
     renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
     renderProdukte(); renderUebersicht(); renderLog(); renderDifferenz();
     toast(`✅ Inventur ${pname}: ${val} kg — beide Seiten gleichgesetzt`);
@@ -1054,9 +1057,17 @@ async function eintragEingang(pid, menge, zielLo='Garage') {
   const bidx = bestaende.findIndex(b => b.produkt_id===pid && b.lagerort===zielLo);
   if (bidx>=0) bestaende[bidx].menge_kg = neuerAD;
   else bestaende.push({ produkt_id:pid, lagerort:zielLo, menge_kg:neuerAD });
-  // LS-Bestand auch erhöhen
-  const lsAlt = getLsBestand(pid) || 0;
-  await lsBestandSetzen(pid, lsAlt + menge, 'Eingang/Anlieferung');
+  // LS-Bestand für ALLE Gebindegrößen des Produktnamens erhöhen
+  // Menge proportional zu jeder Gebindegröße addieren — oder einfach auf die
+  // gewählte Gebindegröße (pid) addieren, Rest bleibt
+  const pnameEin = produkte.find(p=>p.id===pid)?.name||'';
+  const alleProdsEin = prodsFor(pnameEin);
+  for (const prod of alleProdsEin) {
+    const lsAlt = getLsBestand(prod.id) || 0;
+    // Nur für die gewählte Gebindegröße addieren
+    const zusatz = prod.id === pid ? menge : 0;
+    await lsBestandSetzen(prod.id, lsAlt + zusatz, 'Eingang/Anlieferung');
+  }
   // Eingang loggen
   await api.post('lager_eingang', { produkt_id:pid, menge_kg:menge, notiz:'Anlieferung', kuerzel:meinKuerzel||null });
   eingaenge.unshift({ produkt_id:pid, menge_kg:menge, notiz:'Anlieferung', kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
