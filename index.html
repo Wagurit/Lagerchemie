@@ -185,7 +185,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   // Service Worker registrieren für Auto-Updates
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=24').then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=26').then(reg => {
         // Alle 60 Minuten auf Updates prüfen
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
@@ -206,6 +206,45 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
     const b = document.getElementById('updateBanner');
     if (b) b.style.display = 'flex';
   }
+
+  // Pull-to-refresh
+  (function() {
+    let startY = 0, pulling = false, indicator = null;
+    function getInd() {
+      if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:8000;background:#0369a1;color:#fff;text-align:center;font-family:Barlow Condensed,sans-serif;font-weight:700;font-size:13px;letter-spacing:0.5px;padding:10px;transform:translateY(-100%);transition:transform 0.15s;';
+        document.body.appendChild(indicator);
+      }
+      return indicator;
+    }
+    document.addEventListener('touchstart', e => {
+      const sa = document.querySelector('.scroll-area');
+      if (sa && sa.scrollTop === 0) { startY = e.touches[0].clientY; pulling = true; }
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (!pulling) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy > 10) {
+        const ind = getInd();
+        const pct = Math.min(dy / 80, 1);
+        ind.style.transform = `translateY(${(pct - 1) * 100}%)`;
+        ind.textContent = pct >= 1 ? '↑ Loslassen zum Aktualisieren' : '↓ Zum Aktualisieren ziehen';
+      }
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (!pulling) return;
+      pulling = false;
+      const dy = e.changedTouches[0].clientY - startY;
+      const ind = getInd();
+      ind.style.transform = 'translateY(-100%)';
+      if (dy > 80) {
+        ind.textContent = '🔄 Aktualisiere…';
+        ind.style.transform = 'translateY(0)';
+        setTimeout(() => location.reload(), 400);
+      }
+    }, { passive: true });
+  })();
 </script>
 </head>
 <body>
@@ -264,6 +303,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   <button class="tab" onclick="setTab('verwaltung',this)">⚙️ Verwaltung</button>
   <button class="tab" onclick="setTab('ls',this)">📝 LS Austrag</button>
   <button class="tab" onclick="setTab('differenz',this)">⚖️ Differenz</button>
+  <button class="tab" onclick="setTab('hilfe',this)">❓ Hilfe</button>
 </div>
 
 <div class="scroll-area">
@@ -308,6 +348,12 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   <!-- DIFFERENZ -->
   <div class="view" id="view-differenz">
     <div id="differenzContent"></div>
+  </div>
+
+
+  <!-- HILFE -->
+  <div class="view" id="view-hilfe">
+    <div id="hilfeContent"></div>
   </div>
 
 </div>
@@ -435,7 +481,7 @@ async function init() {
     const meins = userKuerzel.find(u => u.user_id === meineUserId);
     meinKuerzel = meins ? meins.kuerzel : '';
     sync('ok');
-    renderProdukte(); renderUebersicht(); renderLog(); renderVerwaltung(); renderLS(); renderDifferenz();
+    renderProdukte(); renderUebersicht(); renderLog(); renderVerwaltung(); renderLS(); renderDifferenz(); renderHilfe();
   } catch(e) { sync('error'); toast('❌ Verbindungsfehler: ' + e.message); }
 }
 
@@ -1243,10 +1289,14 @@ function renderLS(filterQ='') {
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
             <div class="f" style="margin:0;">
-              <label>Menge (kg)</label>
-              <input type="number" id="${sid}_menge" placeholder="z.B. ${p.gebinde_kg}" step="0.5"
-                style="width:100%;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('${sid}_datum')?.focus();}">
+              <label>Menge (kg) — <span id="${sid}_sign_label" style="color:#b91c1c;">Entnahme (−)</span></label>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <button id="${sid}_sign" onclick="lsToggleSign('${sid}')"
+                  style="width:42px;height:42px;border-radius:8px;border:1px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;cursor:pointer;flex-shrink:0;">−</button>
+                <input type="number" id="${sid}_menge" placeholder="z.B. ${p.gebinde_kg}" step="0.5"
+                  style="flex:1;min-width:0;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('${sid}_datum')?.focus();}">
+              </div>
             </div>
             <div class="f" style="margin:0;">
               <label>LS Datum (optional)</label>
@@ -1342,30 +1392,55 @@ function lsKundeSuche(q, listId) {
   list.style.display = matches.length ? 'block' : 'none';
 }
 
+function lsToggleSign(sid) {
+  const btn = document.getElementById(sid+'_sign');
+  const lbl = document.getElementById(sid+'_sign_label');
+  if (!btn) return;
+  if (btn.textContent === '−') {
+    btn.textContent = '+';
+    btn.style.background = '#f0fdf4';
+    btn.style.borderColor = '#86efac';
+    btn.style.color = '#15803d';
+    if (lbl) { lbl.textContent = 'Eingang (+)'; lbl.style.color = '#15803d'; }
+  } else {
+    btn.textContent = '−';
+    btn.style.background = '#fef2f2';
+    btn.style.borderColor = '#fca5a5';
+    btn.style.color = '#b91c1c';
+    if (lbl) { lbl.textContent = 'Entnahme (−)'; lbl.style.color = '#b91c1c'; }
+  }
+}
+
 async function lsAustragSpeichernDirekt(pid, sid, gebinde) {
   const mengeInp = document.getElementById(sid+'_menge');
   const datumInp = document.getElementById(sid+'_datum');
   const kundeInp = document.getElementById(sid+'_kunde');
+  const signBtn = document.getElementById(sid+'_sign');
   const menge = parseFloat(mengeInp?.value);
   const kunde = kundeInp?.value.trim();
   const lsDatum = datumInp?.value || null;
+  const istEingang = signBtn && signBtn.textContent === '+';
 
   if (isNaN(menge) || menge <= 0) { toast('⚠️ Bitte Menge eingeben'); mengeInp?.focus(); return; }
   if (!kunde) { toast('⚠️ Bitte Kunde eingeben'); kundeInp?.focus(); return; }
 
   const lsAktuell = getLsBestand(pid);
   if (lsAktuell === null) { toast('⚠️ Erst Inventur in Verwaltung durchführen!'); return; }
-  if (lsAktuell - menge < 0) {
+
+  // Entnahme: prüfen ob genug vorhanden
+  if (!istEingang && lsAktuell - menge < 0) {
     toast(`⛔ Nicht möglich! LS-Bestand: ${lsAktuell} kg, Entnahme: ${menge} kg`);
     return;
   }
 
   sync('syncing');
   try {
-    const neuerLsBestand = lsAktuell - menge;
+    // Eingang: Menge addieren, Entnahme: Menge subtrahieren
+    const delta = istEingang ? menge : -menge;
+    const neuerLsBestand = lsAktuell + delta;
     await lsBestandSetzen(pid, neuerLsBestand);
     const res = await api.post('lager_ls_austrag', {
-      produkt_id: pid, menge_kg: menge, kunde,
+      produkt_id: pid, menge_kg: Math.abs(menge) * (istEingang ? 1 : -1), kunde,
       kuerzel: meinKuerzel||null, ls_datum: lsDatum,
       ls_bestand_nach: neuerLsBestand
     });
@@ -1380,7 +1455,7 @@ async function lsAustragSpeichernDirekt(pid, sid, gebinde) {
     renderLS(document.getElementById('lsSuche')?.value||'');
     renderDifferenz();
     const pname = produkte.find(p=>p.id===pid)?.name||'';
-    toast(`📝 LS: −${menge} kg ${pname} → ${kunde} (Rest: ${neuerLsBestand} kg)`);
+    toast(`📝 LS: ${istEingang?'+':'−'}${menge} kg ${pname} → ${kunde} (Rest: ${neuerLsBestand} kg)`);
   } catch(e) { sync('error'); toast('❌ '+e.message); }
 }
 
@@ -1566,6 +1641,156 @@ function renderDifferenz(filterQ='', nurMitDiff=false) {
     }, 0);
   }
 }
+
+
+// ══════════════════════════════════════════════════════════
+// HILFE
+// ══════════════════════════════════════════════════════════
+function renderHilfe() {
+  const el = document.getElementById('hilfeContent');
+  if (!el) return;
+
+  el.innerHTML = `
+    <div class="sl" style="margin-top:14px;">Kurzanleitung nach Rolle</div>
+
+    <!-- AUSSENDIENST -->
+    <div class="card" style="margin-bottom:12px;border-color:#7dd3fc;">
+      <div style="background:#0369a1;padding:10px 14px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#fff;">📦 Außendienst — Servicetechniker</div>
+      </div>
+      <div class="card-body" style="padding:14px;">
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Anmelden</div>
+        <div style="font-size:13px;color:#0f172a;margin-bottom:12px;">App öffnen → E-Mail + Passwort eingeben. Die App merkt sich die Anmeldung dauerhaft.</div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Produkt suchen</div>
+        <div style="font-size:13px;color:#0f172a;margin-bottom:4px;">Suchleiste im Tab <strong>Produkte</strong> — alle Schreibweisen funktionieren:</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">BZ300, BZ 300, bz-300 → findet dasselbe · Es reicht ein Teil des Namens (z.B. KT)</div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Bestand ablesen</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
+          Chips zeigen: Gebindegröße (klein) · Menge in kg · Richtwert<br>
+          🔵 Garage · 🟡 Werkstatt · Roter Rand = unter 30% Richtwert → Nachbestellung nötig
+        </div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Entnahme buchen</div>
+        <div style="font-size:13px;color:#0f172a;margin-bottom:4px;">Kachel antippen → aufklappt:</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:4px;padding-left:12px;">− = 1 Gebinde austragen · + = 1 Gebinde eintragen (Rückgabe/Umlagerung)</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">Manuell: Vorzeichen wählen → Anzahl Gebinde → optional Notiz → OK · Bestand kann nicht unter 0 sinken</div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Häufige Fragen</div>
+        <div style="font-size:12px;color:#475569;padding-left:12px;">
+          <strong>Kann mich nicht einloggen?</strong> → Büro kontaktieren<br>
+          <strong>Roter Rand?</strong> → Unter 30% Richtwert, Büro informieren<br>
+          <strong>Zu viel ausgetragen?</strong> → Differenz mit + wieder eintragen, Notiz: Korrektur<br>
+          <strong>Verbindungsfehler?</strong> → Internet prüfen, bei Problemen Büro informieren
+        </div>
+      </div>
+    </div>
+
+    <!-- VERWALTUNG -->
+    <div class="card" style="margin-bottom:12px;border-color:#cbd5e1;">
+      <div style="background:#475569;padding:10px 14px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#fff;">⚙️ Verwaltung — Büro</div>
+      </div>
+      <div class="card-body" style="padding:14px;">
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Neues Produkt anlegen</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
+          Verwaltung oben: Name → Gebinde (kg) → Richtwert → Anlegen (Enter springt weiter)<br>
+          <strong>Danach sofort SET machen</strong> damit Außen- und Innendienst einen Startbestand haben!
+        </div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Inventur / SET</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
+          kg-Wert eingeben → SET drücken<br>
+          Setzt Lager UND LS-Bestand gleichzeitig auf diesen Wert — jede Gebindegröße + Lagerort separat
+        </div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Eingang (Anlieferung)</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
+          Menge eingeben → Lagerort wählen (Garage/Werkstatt) → ＋ drücken<br>
+          Addiert Menge zu BEIDEN Seiten: Lager + LS
+        </div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Richtwert (RW)</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
+          Ab wann ein Produkt als "niedrig" gilt (unter 50%) · Pro Gebindegröße separat einstellbar
+        </div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Techniker-Kürzel</div>
+        <div style="font-size:12px;color:#475569;padding-left:12px;">
+          Kürzel (z.B. IG) + User-ID aus Supabase → ＋ Hinzufügen<br>
+          User-ID: Supabase → Authentication → Users → UUID kopieren
+        </div>
+      </div>
+    </div>
+
+    <!-- INNENDIENST -->
+    <div class="card" style="margin-bottom:12px;border-color:#fcd34d;">
+      <div style="background:#b45309;padding:10px 14px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#fff;">📝 Innendienst — LS Austrag</div>
+      </div>
+      <div class="card-body" style="padding:14px;">
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#b45309;margin-bottom:6px;">LS Austrag erfassen</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:4px;padding-left:12px;">Tab LS Austrag → Produkt suchen → Kachel aufklappen</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
+          Vorzeichen wählen (− Entnahme / + Eingang) → Menge (kg) → Enter → LS Datum (optional) → Enter → Kunde → Enter = gespeichert<br>
+          Blockierung wenn LS-Bestand nicht ausreicht (Doppelbuchung-Schutz)
+        </div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#b45309;margin-bottom:6px;">Differenz kontrollieren</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
+          ✅ Grün = alles stimmt · ⚠️ Gelb = LS fehlt · 🔴 Rot = Fehler/Doppelbuchung<br>
+          Filter "Nur mit Differenz" zeigt nur Problemfälle
+        </div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#b45309;margin-bottom:6px;">Typische Szenarien</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
+          <strong>Techniker entnimmt + LS kommt an:</strong> Entnahme buchen → Differenz = 0 ✅<br>
+          <strong>LS fehlt:</strong> Differenz bleibt positiv ⚠️ → Nachfrage beim Techniker<br>
+          <strong>Anlieferung:</strong> Verwaltung bucht Eingang → beide Seiten steigen, Differenz bleibt sichtbar
+        </div>
+
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#b45309;margin-bottom:6px;">Häufige Fragen</div>
+        <div style="font-size:12px;color:#475569;padding-left:12px;">
+          <strong>App blockiert LS-Eingabe?</strong> → LS-Bestand würde unter 0 sinken, prüfe ob bereits eingetragen<br>
+          <strong>Neues Produkt?</strong> → Büro legt es an und macht Inventur (SET), danach automatisch verfügbar<br>
+          <strong>LS falsch eingetragen?</strong> → Erneut eintragen mit + (Eingang) vor der kg-Zahl und Vermerk "Korrektur" hinter dem Kundennamen
+        </div>
+      </div>
+    </div>
+
+    <!-- KONZEPT -->
+    <div class="sl">Das Konzept: Zwei parallele Bestände</div>
+    <div class="card">
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div style="background:#f0f9ff;border:1px solid #7dd3fc;border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:20px;margin-bottom:4px;">📦</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#0369a1;">Außendienst</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;">Techniker bucht Entnahmen → Lagerbestand sinkt</div>
+          </div>
+          <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:20px;margin-bottom:4px;">📝</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#b45309;">Innendienst</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;">Büro trägt Lieferscheine ein → LS-Bestand sinkt</div>
+          </div>
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:20px;margin-bottom:4px;">⚖️</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#15803d;">Differenz = 0</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;">Alle LS stimmen mit Lagerentnahmen überein ✅</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#64748b;font-family:'Barlow',sans-serif;border-top:1px solid #e0f2fe;padding-top:10px;">
+          <strong>Verwaltung</strong> ist die neutrale Instanz: Inventur (SET) setzt beide Seiten gleich. Eingang (＋) erhöht beide Seiten gleichzeitig.
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 
 // START
 checkSession();
