@@ -185,7 +185,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
   // Service Worker registrieren für Auto-Updates
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=26').then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=27').then(reg => {
         // Alle 60 Minuten auf Updates prüfen
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
@@ -662,7 +662,7 @@ function renderProdukte() {
         <span class="chev">▼</span>
       </div>
       <div class="chip-row">
-        ${chips||'<span style="font-size:12px;color:#94a3b8">Noch kein Bestand – aufklappen zum Einbuchen</span>'}
+        ${chips||'<span style="font-size:12px;color:#94a3b8">Noch kein Bestand – nur über Verwaltung einbuchen</span>'}
       </div>
       <div class="pc-detail">${rows}</div>
     </div>`;
