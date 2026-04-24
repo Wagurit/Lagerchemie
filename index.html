@@ -629,9 +629,9 @@ function renderProdukte() {
       return ['Garage','Werkstatt'].map(lo => {
         const kg = getMenge(p.id, lo);
         if (!kg) return '';
-        const rwTxt = rwP ? ` · RW ${rwP}kg` : '';
+        const rwTxt = rwP ? ` · <span style="opacity:0.5;font-size:10px;">RW ${rwP}kg</span>` : '';
         return `<span class="lchip ${lo.toLowerCase()}">
-          <span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> ${kg}kg${rwTxt}
+          <span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> <strong>${kg}kg</strong>${rwTxt}
         </span>`;
       });
     }).join('');
