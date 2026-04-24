@@ -122,11 +122,11 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 .cbtn.plus  { background: #f0fdf4; border-color: #86efac; color: var(--ok); }
 
 .manual-row { display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e0f2fe; }
-.manual-inp { flex: 1; background: var(--input-bg); border: 1px solid #7dd3fc; border-radius: 6px; padding: 9px 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; outline: none; min-width: 0; }
+.manual-inp { width: 64px; flex-shrink: 0; background: var(--input-bg); border: 1px solid #7dd3fc; border-radius: 6px; padding: 9px 8px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; outline: none; text-align: center; }
 .manual-inp:focus { border-color: var(--surface2); }
-.note-inp { flex: 1.5; background: var(--input-bg); border: 1px solid #7dd3fc; border-radius: 6px; padding: 9px 10px; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 13px; outline: none; min-width: 0; }
+.note-inp { flex: 1; background: var(--input-bg); border: 1px solid #7dd3fc; border-radius: 6px; padding: 9px 10px; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 13px; outline: none; min-width: 0; }
 .note-inp:focus { border-color: var(--surface2); }
-.btn-ok { background: var(--surface2); color: #fff; border: none; border-radius: 6px; padding: 9px 14px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.5px; cursor: pointer; white-space: nowrap; }
+.btn-ok { background: var(--surface2); color: #fff; border: none; border-radius: 6px; padding: 9px 0; width: 96px; flex-shrink: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.5px; cursor: pointer; white-space: nowrap; text-align: center; }
 .btn-ok:active { opacity: 0.85; }
 
 /* NEU BUTTON */
@@ -356,6 +356,23 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
     <div id="hilfeContent"></div>
   </div>
 
+</div>
+
+<!-- MODAL: Produkt editieren -->
+<div class="modal-bg" id="modalEdit">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('modalEdit').classList.remove('open')">✕</button>
+    <div class="modal-title">Produkt bearbeiten</div>
+    <input type="hidden" id="edit-pid">
+    <div class="f"><label>Produktname</label><input type="text" id="edit-name" placeholder="z.B. BZ 999"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('edit-gebinde')?.focus();}"></div>
+    <div class="r2">
+      <div class="f"><label>Gebinde (kg)</label><input type="number" id="edit-gebinde" placeholder="z.B. 20"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();speichereProduktEdit();}"></div>
+      <div class="f"><label>Richtwert (kg)</label><input type="number" id="edit-richtwert" placeholder="optional"></div>
+    </div>
+    <button class="btn-save" onclick="speichereProduktEdit()">💾 Speichern</button>
+  </div>
 </div>
 
 <!-- MODAL: Neues Produkt -->
@@ -718,16 +735,26 @@ async function speichereNeuesProdukt() {
   const name = document.getElementById('neu-name').value.trim();
   const geb = parseInt(document.getElementById('neu-gebinde').value);
   const rw = parseFloat(document.getElementById('neu-richtwert').value)||null;
+  const start = parseFloat(document.getElementById('neu-startmenge')?.value)||null;
   if(!name||!geb){toast('⚠️ Name und Gebindegröße erforderlich');return;}
   sync('syncing');
   try {
     const res = await api.post('lager_produkte', {name, gebinde_kg:geb, richtwert_kg:rw});
-    produkte.push(res[0]);
+    const np = res[0];
+    produkte.push(np);
     produkte.sort((a,b)=>a.name.localeCompare(b.name));
-    sync('ok'); closeModal();
-    ['neu-name','neu-gebinde','neu-richtwert'].forEach(id=>document.getElementById(id).value='');
-    renderProdukte();
-    toast('✅ Produkt angelegt: ' + name);
+    // Startmenge als Inventur in Garage buchen
+    if (start && start > 0) {
+      await api.upsert('lager_bestand', {produkt_id:np.id, lagerort:'Garage', menge_kg:start, aktualisiert_am:new Date().toISOString()});
+      await api.post('lager_buchungen', {produkt_id:np.id, lagerort:'Garage', menge_kg:start, notiz:'Inventur/Start', kuerzel:meinKuerzel||null});
+      bestaende.push({produkt_id:np.id, lagerort:'Garage', menge_kg:start});
+      await lsBestandSetzen(np.id, start, 'Inventur/Start');
+      buchungen.unshift({produkt_id:np.id, lagerort:'Garage', menge_kg:start, notiz:'Inventur/Start', kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString()});
+    }
+    sync('ok');
+    ['neu-name','neu-gebinde','neu-richtwert','neu-startmenge'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    renderProdukte(); renderUebersicht(); renderVerwaltung(); renderLS(); renderDifferenz();
+    toast('✅ ' + name + (start ? ` — ${start} kg in Garage` : ' angelegt'));
   } catch(e){sync('error');toast('❌ '+e.message);}
 }
 
@@ -853,18 +880,8 @@ function renderVerwaltung(filterQ='') {
   const names = uniqueNames().filter(n => !filterQ || norm(n).includes(norm(filterQ)));
 
   el.innerHTML = `
-    <!-- SUCHE GANZ OBEN -->
-    <div style="position:relative;margin:12px 0 10px;">
-      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
-      <input type="search" id="verwaltungSuche" value="${filterQ}"
-        oninput="renderVerwaltung(this.value)"
-        placeholder="Produkt suchen… z.B. BZ 300"
-        style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;"
-        data-focus="1">
-    </div>
-
-    <!-- NEUES PRODUKT DARUNTER -->
-    <div class="card" style="margin-bottom:10px;">
+    <!-- NEUES PRODUKT GANZ OBEN -->
+    <div class="card" style="margin-top:12px;margin-bottom:10px;">
       <div class="card-title">＋ Neues Produkt anlegen</div>
       <div class="card-body">
         <div class="r2">
@@ -875,12 +892,22 @@ function renderVerwaltung(filterQ='') {
         </div>
         <div class="r2">
           <div class="f"><label>Richtwert (kg, optional)</label><input type="number" id="neu-richtwert" placeholder="optional"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-startmenge')?.focus();}"></div>
+          <div class="f"><label>Startmenge (kg, optional)</label><input type="number" id="neu-startmenge" placeholder="Inventur-Start"
             onkeydown="if(event.key==='Enter'){event.preventDefault();speichereNeuesProdukt();}"></div>
-          <div class="f" style="display:flex;align-items:flex-end;">
-            <button onclick="speichereNeuesProdukt()" class="btn-save" style="margin-top:0;">＋ Anlegen</button>
-          </div>
         </div>
+        <button onclick="speichereNeuesProdukt()" class="btn-save" style="margin-top:6px;">＋ Anlegen</button>
       </div>
+    </div>
+
+    <!-- SUCHLEISTE DARUNTER -->
+    <div style="position:relative;margin-bottom:10px;">
+      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
+      <input type="search" id="verwaltungSuche" value="${filterQ}"
+        oninput="renderVerwaltung(this.value)"
+        placeholder="Produkt suchen… z.B. BZ 300"
+        style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;"
+        data-focus="1">
     </div>
     <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">
       ℹ️ <strong>SET</strong> = Ist-Bestand direkt setzen (Inventur/Anlieferung) · <strong>RW</strong> = Richtwert pro Gebindegröße
@@ -910,11 +937,13 @@ function renderVerwaltung(filterQ='') {
         const einsid = ('ein_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
         return `<div style="border-bottom:1px solid #e0f2fe;">
           <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f8fafc;flex-wrap:wrap;">
-            <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;color:#475569;flex:1;min-width:120px;">${p.gebinde_kg} KG GEBINDE</span>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;color:#475569;flex:1;min-width:80px;">${p.gebinde_kg} KG GEBINDE</span>
             <div style="display:flex;align-items:center;gap:4px;">
               <span style="font-size:11px;color:#64748b;font-family:'DM Mono',monospace;">RW:</span>
               <input type="number" id="${rwsid}" value="${rwP||''}" placeholder="–" style="width:65px;background:#fff;border:1px solid #7dd3fc;border-radius:6px;padding:5px 7px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;text-align:right;">
               <button onclick="speichereRichtwert('${p.id}','${rwsid}')" style="background:#475569;color:#fff;border:none;border-radius:6px;padding:5px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">RW</button>
+              <button onclick="editiereProdukt('${p.id}')" style="background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc;border-radius:6px;padding:5px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">✏️</button>
+              <button onclick="loescheProdukt('${p.id}','${name}')" style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:5px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">🗑</button>
             </div>
             <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
               <span style="font-size:11px;color:#15803d;font-family:'DM Mono',monospace;">📦 Eingang:</span>
@@ -1027,6 +1056,51 @@ async function buchen_eingang(pid, einsid) {
     renderProdukte(); renderUebersicht(); renderDifferenz(); renderLog();
     const pname = produkte.find(p=>p.id===pid)?.name||'';
     toast(`📦 Eingang: +${menge} kg ${pname} → Lager + LS`);
+  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+}
+
+function editiereProdukt(pid) {
+  const p = produkte.find(p => p.id === pid);
+  if (!p) return;
+  document.getElementById('edit-pid').value = pid;
+  document.getElementById('edit-name').value = p.name;
+  document.getElementById('edit-gebinde').value = p.gebinde_kg;
+  document.getElementById('edit-richtwert').value = p.richtwert_kg || '';
+  document.getElementById('modalEdit').classList.add('open');
+}
+
+async function speichereProduktEdit() {
+  const pid = document.getElementById('edit-pid').value;
+  const name = document.getElementById('edit-name').value.trim();
+  const geb = parseInt(document.getElementById('edit-gebinde').value);
+  const rw = parseFloat(document.getElementById('edit-richtwert').value)||null;
+  if (!name || !geb) { toast('⚠️ Name und Gebindegröße erforderlich'); return; }
+  sync('syncing');
+  try {
+    await api.patch('lager_produkte', `id=eq.${pid}`, {name, gebinde_kg:geb, richtwert_kg:rw});
+    const p = produkte.find(p => p.id === pid);
+    if (p) { p.name = name; p.gebinde_kg = geb; p.richtwert_kg = rw; }
+    produkte.sort((a,b) => a.name.localeCompare(b.name));
+    sync('ok');
+    document.getElementById('modalEdit').classList.remove('open');
+    renderProdukte(); renderVerwaltung(); renderUebersicht();
+    toast('✅ Produkt aktualisiert: ' + name);
+  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+}
+
+async function loescheProdukt(pid, name) {
+  if (!confirm(`Produkt "${name}" wirklich löschen? Alle Bestände und Buchungen werden ebenfalls gelöscht!`)) return;
+  sync('syncing');
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/lager_produkte?id=eq.${pid}`, {method:'DELETE', headers:api.h()});
+    produkte = produkte.filter(p => p.id !== pid);
+    bestaende = bestaende.filter(b => b.produkt_id !== pid);
+    buchungen = buchungen.filter(b => b.produkt_id !== pid);
+    lsAustraege = lsAustraege.filter(b => b.produkt_id !== pid);
+    lsBestaende = lsBestaende.filter(b => b.produkt_id !== pid);
+    sync('ok');
+    renderProdukte(); renderVerwaltung(); renderUebersicht(); renderLS(); renderDifferenz();
+    toast('🗑️ Produkt gelöscht: ' + name);
   } catch(e) { sync('error'); toast('❌ ' + e.message); }
 }
 
