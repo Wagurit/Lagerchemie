@@ -1002,6 +1002,7 @@ function renderVerwaltung(filterQ='') {
                 <option value="Garage">🔵 Garage</option>
                 <option value="Werkstatt">🟡 Werkstatt</option>
               </select>
+              <input type="text" id="${einsid}_ls" placeholder="LS-Nr. (optional)" style="width:130px;background:#fff;border:1px solid #86efac;border-radius:6px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;" title="Lieferschein-Nummer (optional)">
               <button onclick="buchen_eingang('${p.id}','${einsid}')" style="background:#15803d;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.5px;cursor:pointer;flex:1;min-width:60px;">＋ Einbuchen</button>
             </div>
           </div>
@@ -1094,18 +1095,23 @@ async function loescheKuerzel(id) {
 async function buchen_eingang(pid, einsid) {
   const inp = document.getElementById(einsid);
   const loSel = document.getElementById(einsid+'_lo');
+  // LS-Nummer aus optionalem Feld lesen (leer = kein Zusatz in Notiz)
+  const lsNrInp = document.getElementById(einsid+'_ls');
+  const lsNr = lsNrInp ? lsNrInp.value.trim() : '';
   const menge = parseFloat(inp.value);
   const zielLo = loSel ? loSel.value : 'Garage';
   if (isNaN(menge) || menge <= 0) { toast('⚠️ Bitte Menge eingeben'); return; }
   sync('syncing');
   try {
-    await eintragEingang(pid, menge, zielLo);
+    await eintragEingang(pid, menge, zielLo, lsNr);
     inp.value = '';
+    if (lsNrInp) lsNrInp.value = '';
     sync('ok');
     renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
     renderProdukte(); renderUebersicht(); renderDifferenz(); renderLog();
     const pname = produkte.find(p=>p.id===pid)?.name||'';
-    toast(`📦 Eingang: +${menge} kg ${pname} → Lager + LS`);
+    const lsHint = lsNr ? ` · LS: ${lsNr}` : '';
+    toast(`📦 Eingang: +${menge} kg ${pname} → Lager + LS${lsHint}`);
   } catch(e) { sync('error'); toast('❌ ' + e.message); }
 }
 
@@ -1245,12 +1251,14 @@ async function lsBestandSetzen(pid, val, notiz='') {
   else lsBestaende.push({ produkt_id: pid, menge_kg: val });
 }
 
-async function eintragEingang(pid, menge, zielLo='Garage') {
+async function eintragEingang(pid, menge, zielLo='Garage', lsNr='') {
   // Eingang: addiert kg zu BEIDEN Seiten (Außendienst gewählter Lagerort + LS)
+  // lsNr: optionale Lieferschein-Nummer, wird in der Notiz gespeichert
+  const notizEingang = lsNr ? `Eingang/Anlieferung · LS: ${lsNr}` : 'Eingang/Anlieferung';
   const neuerAD = getMenge(pid, zielLo) + menge;
   await api.upsert('lager_bestand', { produkt_id:pid, lagerort:zielLo, menge_kg:neuerAD, aktualisiert_am:new Date().toISOString() });
-  await api.post('lager_buchungen', { produkt_id:pid, lagerort:zielLo, menge_kg:menge, notiz:'Eingang/Anlieferung', kuerzel:meinKuerzel||null });
-  buchungen.unshift({ produkt_id:pid, lagerort:zielLo, menge_kg:menge, notiz:'Eingang/Anlieferung', kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
+  await api.post('lager_buchungen', { produkt_id:pid, lagerort:zielLo, menge_kg:menge, notiz:notizEingang, kuerzel:meinKuerzel||null });
+  buchungen.unshift({ produkt_id:pid, lagerort:zielLo, menge_kg:menge, notiz:notizEingang, kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
   const bidx = bestaende.findIndex(b => b.produkt_id===pid && b.lagerort===zielLo);
   if (bidx>=0) bestaende[bidx].menge_kg = neuerAD;
   else bestaende.push({ produkt_id:pid, lagerort:zielLo, menge_kg:neuerAD });
