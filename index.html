@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Lagerchemie</title>
+<title>Lagerchemie V11</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -33,6 +33,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 }
 .logo { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 1px; color: #fff; }
 .logo span { color: #bae6fd; font-weight: 400; }
+.logo-ver { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 400; color: #7dd3fc; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 2px 6px; margin-left: 4px; letter-spacing: 0.5px; }
 .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80; margin-left: auto; flex-shrink: 0; }
 .sync-dot.syncing { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; animation: pulse 1s infinite; }
 .sync-dot.error { background: #f87171; box-shadow: 0 0 6px #f87171; }
@@ -54,6 +55,13 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 }
 .tab:hover { color: #fff; }
 .tab.active { color: #fff; border-bottom-color: #fff; }
+.tab-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #ef4444; color: #fff; border-radius: 10px;
+  font-size: 10px; font-weight: 800; font-family: 'DM Mono', monospace;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  margin-left: 2px; line-height: 1; flex-shrink: 0;
+}
 
 .scroll-area { position: fixed; top: calc(var(--header-h) + var(--tabs-h)); bottom: 0; left: 0; right: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .view { display: none; padding: 12px 12px 100px; }
@@ -79,7 +87,6 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 .fpill.fp-werkstatt.active { background: #d97706; color: #fff; border-color: #d97706; }
 .fpill.fp-warn.active { background: #fef2f2; color: var(--err); border-color: #fca5a5; }
 
-/* PRODUKT CARD */
 .pc { background: #fff; border: 1px solid #bae6fd; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.10); margin-bottom: 10px; }
 .pc.pc-low { border-color: #fca5a5; }
 .pc.pc-warn { border-color: #fcd34d; }
@@ -129,37 +136,31 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 .btn-ok { background: var(--surface2); color: #fff; border: none; border-radius: 6px; padding: 9px 0; width: 96px; flex-shrink: 0; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.5px; cursor: pointer; white-space: nowrap; text-align: center; }
 .btn-ok:active { opacity: 0.85; }
 
-/* NEU BUTTON */
-.btn-neu { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 11px; border-radius: 8px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.5px; cursor: pointer; margin-bottom: 12px; transition: all .15s; }
-.btn-neu:hover { background: rgba(255,255,255,0.25); }
-
-/* FORM */
 .f { margin-bottom: 10px; }
 .f label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .5px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
 .f input, .f select { width: 100%; background: var(--input-bg); border: 1px solid #7dd3fc; border-radius: 6px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; padding: 9px 10px; outline: none; -webkit-appearance: none; }
 .f input:focus { border-color: var(--surface2); box-shadow: 0 0 0 2px #bae6fd; }
 .r2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-/* STAT GRID */
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
 .stat-card { background: #fff; border: 1px solid #bae6fd; border-radius: 10px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.10); }
 .stat-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 .stat-val { font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 500; color: var(--surface2); line-height: 1; }
 .stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
-/* LOG */
 .log-item { background: #fff; border: 1px solid #bae6fd; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
 .log-sign { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; min-width: 58px; text-align: right; line-height: 1.3; padding-top: 1px; }
 .log-sign.pos { color: var(--ok); }
 .log-sign.neg { color: var(--err); }
+.log-sign.note { color: #7c3aed; }
 .log-info { flex: 1; }
 .log-prod { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; color: var(--text); }
 .log-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
 .lort-sm { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; letter-spacing: 0.5px; margin-left: 5px; }
 .lort-sm.garage { background: #e0f2fe; color: var(--surface2); }
 .lort-sm.werkstatt { background: #fffbeb; color: var(--warn); }
+.lort-sm.notiz { background: #ede9fe; color: #7c3aed; }
 
-/* MODAL */
 .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: none; align-items: flex-end; justify-content: center; }
 .modal-bg.open { display: flex; }
 .modal { background: #fff; border-radius: 16px 16px 0 0; padding: 20px 16px 40px; width: 100%; max-width: 480px; }
@@ -167,47 +168,54 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 .modal-close { float: right; background: #e0f2fe; border: none; border-radius: 6px; padding: 4px 10px; font-size: 16px; cursor: pointer; color: var(--surface2); font-weight: 700; }
 .btn-save { display: block; width: 100%; padding: 12px; border-radius: 8px; background: var(--surface2); color: #fff; border: none; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.5px; cursor: pointer; margin-top: 10px; }
 
-/* RESULT ROWS */
 .rr { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #e0f2fe; }
 .rr:last-child { border-bottom: none; }
 .rl { color: var(--muted); font-size: 12px; flex: 1; }
 .rv { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--text); text-align: right; }
 .rv.err { color: var(--err); }
 
-/* TOAST */
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface2); color: #fff; border: 1px solid #7dd3fc; padding: 12px 20px; border-radius: 8px; font-family: 'Barlow', sans-serif; font-size: 14px; font-weight: 500; z-index: 999; transition: transform 0.3s; white-space: nowrap; box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
 .toast.show { transform: translateX(-50%) translateY(0); }
+
+/* BESTELL-KOMMENTAR STYLES */
+.bestell-row { padding: 12px 0; border-bottom: 1px solid #fde68a; }
+.bestell-row:last-child { border-bottom: none; }
+.bestell-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 10px; }
+.bestell-name { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; color: #0f172a; }
+.bestell-kg { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--err); white-space: nowrap; }
+.bestell-aktiv { display: flex; align-items: flex-start; gap: 8px; background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; }
+.bestell-aktiv-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.bestell-aktiv-text { font-family: 'Barlow', sans-serif; font-size: 12px; color: #4c1d95; flex: 1; line-height: 1.4; }
+.bestell-aktiv-meta { font-family: 'DM Mono', monospace; font-size: 10px; color: #7c3aed; margin-top: 2px; }
+.bestell-aktiv-del { background: none; border: none; color: #7c3aed; font-size: 14px; cursor: pointer; padding: 2px 4px; flex-shrink: 0; opacity: 0.6; }
+.bestell-aktiv-del:hover { opacity: 1; }
+.bestell-input-row { display: flex; gap: 6px; }
+.bestell-inp { flex: 1; background: #fff; border: 1px solid #fca5a5; border-radius: 6px; padding: 8px 10px; font-family: 'Barlow', sans-serif; font-size: 12px; color: var(--text); outline: none; min-width: 0; }
+.bestell-inp:focus { border-color: var(--err); box-shadow: 0 0 0 2px #fecaca; }
+.bestell-inp::placeholder { color: #94a3b8; }
+.bestell-btn { background: #7c3aed; color: #fff; border: none; border-radius: 6px; padding: 8px 12px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+.bestell-btn:active { opacity: 0.85; }
 
 .empty { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.75); font-size: 14px; }
 </style>
 
 <script>
-  // Service Worker registrieren für Auto-Updates
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js?v=27').then(reg => {
-        // Alle 60 Minuten auf Updates prüfen
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // Neues Update verfügbar – Toast zeigen
-              showUpdateBanner();
-            }
+          const nw = reg.installing;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner();
           });
         });
       });
     });
-    // Nach Aktivierung neu laden
     navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
   }
-  function showUpdateBanner() {
-    const b = document.getElementById('updateBanner');
-    if (b) b.style.display = 'flex';
-  }
+  function showUpdateBanner() { const b = document.getElementById('updateBanner'); if (b) b.style.display = 'flex'; }
 
-  // Pull-to-refresh
   (function() {
     let startY = 0, pulling = false, indicator = null;
     function getInd() {
@@ -218,31 +226,17 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
       }
       return indicator;
     }
-    document.addEventListener('touchstart', e => {
-      const sa = document.querySelector('.scroll-area');
-      if (sa && sa.scrollTop === 0) { startY = e.touches[0].clientY; pulling = true; }
-    }, { passive: true });
+    document.addEventListener('touchstart', e => { const sa = document.querySelector('.scroll-area'); if (sa && sa.scrollTop === 0) { startY = e.touches[0].clientY; pulling = true; } }, { passive: true });
     document.addEventListener('touchmove', e => {
       if (!pulling) return;
       const dy = e.touches[0].clientY - startY;
-      if (dy > 10) {
-        const ind = getInd();
-        const pct = Math.min(dy / 80, 1);
-        ind.style.transform = `translateY(${(pct - 1) * 100}%)`;
-        ind.textContent = pct >= 1 ? '↑ Loslassen zum Aktualisieren' : '↓ Zum Aktualisieren ziehen';
-      }
+      if (dy > 10) { const ind = getInd(); const pct = Math.min(dy/80,1); ind.style.transform = `translateY(${(pct-1)*100}%)`; ind.textContent = pct>=1 ? '↑ Loslassen zum Aktualisieren' : '↓ Zum Aktualisieren ziehen'; }
     }, { passive: true });
     document.addEventListener('touchend', e => {
-      if (!pulling) return;
-      pulling = false;
+      if (!pulling) return; pulling = false;
       const dy = e.changedTouches[0].clientY - startY;
-      const ind = getInd();
-      ind.style.transform = 'translateY(-100%)';
-      if (dy > 80) {
-        ind.textContent = '🔄 Aktualisiere…';
-        ind.style.transform = 'translateY(0)';
-        setTimeout(() => location.reload(), 400);
-      }
+      const ind = getInd(); ind.style.transform = 'translateY(-100%)';
+      if (dy > 80) { ind.textContent = '🔄 Aktualisiere…'; ind.style.transform = 'translateY(0)'; setTimeout(() => location.reload(), 400); }
     }, { passive: true });
   })();
 </script>
@@ -252,9 +246,10 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <script>
   const SUPABASE_URL = 'https://loekjdetgppmxnwnwxkm.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A';
+  const APP_VERSION = 'V11';
+  // Prefix für Bestellnotizen in lager_buchungen
+  const BESTELL_PREFIX = '🗒️ Bestellnotiz: ';
 </script>
-
-
 
 <!-- UPDATE BANNER -->
 <div id="updateBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:10000; background:#15803d; color:#fff; padding:10px 16px; align-items:center; justify-content:space-between; gap:10px; font-family:'Barlow',sans-serif; font-size:13px; font-weight:500;">
@@ -265,32 +260,26 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <!-- LOGIN SCREEN -->
 <div id="loginScreen" style="display:none; position:fixed; inset:0; background:#0369a1; z-index:9999; align-items:center; justify-content:center; padding:20px;">
   <div style="background:#fff; border-radius:16px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
-    <div style="font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:24px; color:#0369a1; margin-bottom:4px; letter-spacing:-0.3px;">
-      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span>
+    <div style="font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:24px; color:#0369a1; margin-bottom:4px;">
+      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span> <span style="font-size:14px;color:#94a3b8;font-weight:400;">${APP_VERSION}</span>
     </div>
     <div style="font-family:'Barlow',sans-serif; font-size:13px; color:#64748b; margin-bottom:24px;">Bitte anmelden um fortzufahren</div>
     <div style="margin-bottom:12px;">
       <label style="display:block;font-size:11px;font-weight:600;letter-spacing:.5px;color:#1e3a5f;margin-bottom:4px;text-transform:uppercase;">E-Mail</label>
-      <input type="email" id="loginEmail" placeholder="name@firma.de"
-        style="width:100%;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;color:#0f172a;font-family:'DM Mono',monospace;font-size:14px;padding:10px;outline:none;">
+      <input type="email" id="loginEmail" placeholder="name@firma.de" style="width:100%;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;color:#0f172a;font-family:'DM Mono',monospace;font-size:14px;padding:10px;outline:none;">
     </div>
     <div style="margin-bottom:20px;">
       <label style="display:block;font-size:11px;font-weight:600;letter-spacing:.5px;color:#1e3a5f;margin-bottom:4px;text-transform:uppercase;">Passwort</label>
-      <input type="password" id="loginPassword" placeholder="••••••••"
-        style="width:100%;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;color:#0f172a;font-family:'DM Mono',monospace;font-size:14px;padding:10px;outline:none;"
-        onkeydown="if(event.key==='Enter') doLogin()">
+      <input type="password" id="loginPassword" placeholder="••••••••" style="width:100%;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;color:#0f172a;font-family:'DM Mono',monospace;font-size:14px;padding:10px;outline:none;" onkeydown="if(event.key==='Enter') doLogin()">
     </div>
     <div id="loginError" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:10px;font-size:13px;color:#b91c1c;margin-bottom:12px;font-family:'Barlow',sans-serif;"></div>
-    <button onclick="doLogin()"
-      style="width:100%;padding:12px;border-radius:8px;background:#0369a1;color:#fff;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;cursor:pointer;">
-      Anmelden
-    </button>
+    <button onclick="doLogin()" style="width:100%;padding:12px;border-radius:8px;background:#0369a1;color:#fff;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.5px;cursor:pointer;">Anmelden</button>
   </div>
 </div>
 
 <!-- HEADER -->
 <div class="header">
-  <div class="logo">Lager<span>chemie</span></div>
+  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V11</span></div>
   <div class="sync-dot" id="syncDot"></div>
   <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">LOGOUT</button>
 </div>
@@ -298,7 +287,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <!-- TABS -->
 <div class="tabs">
   <button class="tab active" onclick="setTab('produkte',this)">📦 Produkte</button>
-  <button class="tab" onclick="setTab('uebersicht',this)">📊 Übersicht</button>
+  <button class="tab" id="tab-uebersicht" onclick="setTab('uebersicht',this)">📊 Übersicht</button>
   <button class="tab" onclick="setTab('log',this)">📋 Log</button>
   <button class="tab" onclick="setTab('verwaltung',this)">⚙️ Verwaltung</button>
   <button class="tab" onclick="setTab('ls',this)">📝 LS Austrag</button>
@@ -307,13 +296,10 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 </div>
 
 <div class="scroll-area">
-
-  <!-- PRODUKTE -->
   <div class="view active" id="view-produkte">
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
-      <input type="search" class="search-input" id="searchInput"
-        placeholder="Produkt suchen… z.B. BZ 300" oninput="renderProdukte()">
+      <input type="search" class="search-input" id="searchInput" placeholder="Produkt suchen… z.B. BZ 300" oninput="renderProdukte()">
     </div>
     <div class="filter-row">
       <button class="fpill active" onclick="setFilter('alle',this)">Alle</button>
@@ -323,39 +309,12 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
     </div>
     <div id="produktListe"></div>
   </div>
-
-  <!-- ÜBERSICHT -->
-  <div class="view" id="view-uebersicht">
-    <div id="uebersichtContent"></div>
-  </div>
-
-  <!-- LOG -->
-  <div class="view" id="view-log">
-    <div id="logContent"></div>
-  </div>
-
-
-  <!-- VERWALTUNG -->
-  <div class="view" id="view-verwaltung">
-    <div id="verwaltungContent"></div>
-  </div>
-
-  <!-- LS AUSTRAG -->
-  <div class="view" id="view-ls">
-    <div id="lsContent"></div>
-  </div>
-
-  <!-- DIFFERENZ -->
-  <div class="view" id="view-differenz">
-    <div id="differenzContent"></div>
-  </div>
-
-
-  <!-- HILFE -->
-  <div class="view" id="view-hilfe">
-    <div id="hilfeContent"></div>
-  </div>
-
+  <div class="view" id="view-uebersicht"><div id="uebersichtContent"></div></div>
+  <div class="view" id="view-log"><div id="logContent"></div></div>
+  <div class="view" id="view-verwaltung"><div id="verwaltungContent"></div></div>
+  <div class="view" id="view-ls"><div id="lsContent"></div></div>
+  <div class="view" id="view-differenz"><div id="differenzContent"></div></div>
+  <div class="view" id="view-hilfe"><div id="hilfeContent"></div></div>
 </div>
 
 <!-- MODAL: Produkt editieren -->
@@ -364,37 +323,12 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
     <button class="modal-close" onclick="document.getElementById('modalEdit').classList.remove('open')">✕</button>
     <div class="modal-title">Produkt bearbeiten</div>
     <input type="hidden" id="edit-pid">
-    <div class="f"><label>Produktname</label><input type="text" id="edit-name" placeholder="z.B. BZ 999"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('edit-gebinde')?.focus();}"></div>
+    <div class="f"><label>Produktname</label><input type="text" id="edit-name" placeholder="z.B. BZ 999" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('edit-gebinde')?.focus();}"></div>
     <div class="r2">
-      <div class="f"><label>Gebinde (kg)</label><input type="number" id="edit-gebinde" placeholder="z.B. 20"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();speichereProduktEdit();}"></div>
+      <div class="f"><label>Gebinde (kg)</label><input type="number" id="edit-gebinde" placeholder="z.B. 20" onkeydown="if(event.key==='Enter'){event.preventDefault();speichereProduktEdit();}"></div>
       <div class="f"><label>Richtwert (kg)</label><input type="number" id="edit-richtwert" placeholder="optional"></div>
     </div>
     <button class="btn-save" onclick="speichereProduktEdit()">💾 Speichern</button>
-  </div>
-</div>
-
-<!-- MODAL: Neues Produkt -->
-<div class="modal-bg" id="modalNeu">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">Neues Produkt</div>
-    <div class="f">
-      <label>Produktname</label>
-      <input type="text" id="neu-name" placeholder="z.B. BZ 999">
-    </div>
-    <div class="r2">
-      <div class="f">
-        <label>Gebinde (kg)</label>
-        <input type="number" id="neu-gebinde" placeholder="z.B. 20">
-      </div>
-      <div class="f">
-        <label>Richtwert (kg)</label>
-        <input type="number" id="neu-richtwert" placeholder="optional">
-      </div>
-    </div>
-    <button class="btn-save" onclick="speichereNeuesProdukt()">Produkt speichern</button>
   </div>
 </div>
 
@@ -424,53 +358,139 @@ const api = {
     });
     if (!r.ok) throw new Error(await r.text());
   },
-  async upsert(table, data, onConflict='produkt_id,lagerort') {
-    // Erst prüfen ob Eintrag existiert
-    const check = await fetch(
-      `${SUPABASE_URL}/rest/v1/${table}?produkt_id=eq.${data.produkt_id}&lagerort=eq.${data.lagerort}`,
-      { headers: this.h() }
-    );
+  async delete(table, filter) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
+      method:'DELETE', headers: this.h()
+    });
+    if (!r.ok) throw new Error(await r.text());
+  },
+  async upsert(table, data) {
+    const check = await fetch(`${SUPABASE_URL}/rest/v1/${table}?produkt_id=eq.${data.produkt_id}&lagerort=eq.${data.lagerort}`, { headers: this.h() });
     const existing = await check.json();
     if (existing && existing.length > 0) {
-      // UPDATE
-      const r = await fetch(
-        `${SUPABASE_URL}/rest/v1/${table}?produkt_id=eq.${data.produkt_id}&lagerort=eq.${data.lagerort}`,
-        { method:'PATCH', headers:{...this.h(), Prefer:'return=minimal'}, body: JSON.stringify(data) }
-      );
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?produkt_id=eq.${data.produkt_id}&lagerort=eq.${data.lagerort}`, { method:'PATCH', headers:{...this.h(), Prefer:'return=minimal'}, body: JSON.stringify(data) });
       if (!r.ok) throw new Error(await r.text());
     } else {
-      // INSERT
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-        method:'POST', headers:{...this.h(), Prefer:'return=minimal'}, body: JSON.stringify(data)
-      });
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method:'POST', headers:{...this.h(), Prefer:'return=minimal'}, body: JSON.stringify(data) });
       if (!r.ok) throw new Error(await r.text());
     }
   }
 };
 
 // ══════════════════════════════════════════════════════════
-// DATUM HELFER – global verfügbar
+// DATUM HELFER
 // ══════════════════════════════════════════════════════════
 function fmtDatum(isoStr) {
   if (!isoStr) return '–';
-  const d = new Date(isoStr);
-  return d.toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+  return new Date(isoStr).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
 }
 function fmtDatumKurz(isoStr) {
   if (!isoStr) return '–';
-  const d = new Date(isoStr);
-  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
+  return new Date(isoStr).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
 }
-// norm: globale Normalisierung für Suche (Leerzeichen, Bindestriche etc. ignorieren)
-const norm = s => s.toLowerCase().split(' ').join('').split('-').join('').split('.').join('').split('_').join('');
+const norm = s => s.toLowerCase().replace(/[\s\-\._]/g,'');
 
 // ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
-let produkte = [], bestaende = [], buchungen = [], userKuerzel = [], lsAustraege = [], kunden = [], lsBestaende = [], eingaenge = [];
+let produkte = [], bestaende = [], buchungen = [], userKuerzel = [], lsAustraege = [], kunden = [], lsBestaende = [];
 let aktFilter = 'alle';
 let meinKuerzel = '';
 let meineUserId = null;
+
+// ══════════════════════════════════════════════════════════
+// BESTELLNOTIZEN HELFER
+// ══════════════════════════════════════════════════════════
+
+// Gibt die aktive Bestellnotiz für einen Produktnamen zurück —
+// NUR wenn sie NACH dem letzten Eingang für dieses Produkt erstellt wurde.
+// Sonst null (= frische Eingabe zeigen).
+function getAktiveBestellnotiz(name) {
+  const ids = prodsFor(name).map(p => p.id);
+
+  // Alle Buchungen für dieses Produkt, neuste zuerst
+  const relevant = buchungen.filter(b => ids.includes(b.produkt_id));
+
+  // Letzten Eingang finden (menge_kg > 0, KEINE Bestellnotiz)
+  const letzterEingang = relevant.find(b =>
+    Number(b.menge_kg) > 0 &&
+    !(b.notiz && b.notiz.startsWith(BESTELL_PREFIX))
+  );
+
+  // Letzte Bestellnotiz finden
+  const letzteNotiz = relevant.find(b =>
+    b.notiz && b.notiz.startsWith(BESTELL_PREFIX)
+  );
+
+  if (!letzteNotiz) return null; // keine Bestellnotiz vorhanden
+
+  // Ist die Notiz NACH dem letzten Eingang? → aktiv anzeigen
+  // Ist kein Eingang vorhanden oder Notiz ist neuer → aktiv
+  if (!letzterEingang) return letzteNotiz; // noch nie Eingang → immer anzeigen
+
+  const tNotiz = new Date(letzteNotiz.erstellt_am).getTime();
+  const tEingang = new Date(letzterEingang.erstellt_am).getTime();
+
+  return tNotiz > tEingang ? letzteNotiz : null;
+}
+
+async function speichereBestellnotiz(name, sid) {
+  const inp = document.getElementById(sid);
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) { toast('⚠️ Bitte Text eingeben'); return; }
+
+  // Erste Produkt-ID des Namens nehmen (Notiz gilt für den Namen, nicht Gebindegröße)
+  const pid = prodsFor(name)[0]?.id;
+  if (!pid) return;
+
+  sync('syncing');
+  try {
+    const res = await api.post('lager_buchungen', {
+      produkt_id: pid,
+      lagerort: null,
+      menge_kg: 0,
+      notiz: BESTELL_PREFIX + text,
+      kuerzel: meinKuerzel || null
+    });
+    buchungen.unshift(res[0]);
+    inp.value = '';
+    sync('ok');
+    renderUebersicht();
+    renderLog();
+    toast('🗒️ Bestellnotiz gespeichert — für alle sichtbar');
+  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+}
+
+async function loescheBestellnotiz(buchungId) {
+  if (!confirm('Bestellnotiz wirklich löschen?')) return;
+  sync('syncing');
+  try {
+    await api.delete('lager_buchungen', `id=eq.${buchungId}`);
+    buchungen = buchungen.filter(b => b.id !== buchungId);
+    sync('ok');
+    renderUebersicht();
+    renderLog();
+    toast('🗑️ Bestellnotiz gelöscht');
+  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+}
+
+// ══════════════════════════════════════════════════════════
+// TAB BADGE
+// ══════════════════════════════════════════════════════════
+function updateUebersichtBadge() {
+  const niedrig = uniqueNames().filter(n => { const rw = richtwert(n); return rw && gesamtKg(n) < rw * 0.5; });
+  const tab = document.getElementById('tab-uebersicht');
+  if (!tab) return;
+  const old = tab.querySelector('.tab-badge');
+  if (old) old.remove();
+  if (niedrig.length > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'tab-badge';
+    badge.textContent = niedrig.length;
+    tab.appendChild(badge);
+  }
+}
 
 // ══════════════════════════════════════════════════════════
 // INIT
@@ -478,34 +498,26 @@ let meineUserId = null;
 async function init() {
   sync('syncing');
   try {
-    // User-ID aus Token lesen
-    try {
-      const payload = JSON.parse(atob(authToken.split('.')[1]));
-      meineUserId = payload.sub;
-    } catch(e) {}
-
-    [produkte, bestaende, buchungen, userKuerzel, lsAustraege, kunden, lsBestaende, eingaenge] = await Promise.all([
+    try { const payload = JSON.parse(atob(authToken.split('.')[1])); meineUserId = payload.sub; } catch(e) {}
+    [produkte, bestaende, buchungen, userKuerzel, lsAustraege, kunden, lsBestaende] = await Promise.all([
       api.get('lager_produkte','order=name.asc,gebinde_kg.desc'),
       api.get('lager_bestand','order=lagerort.asc'),
-      api.get('lager_buchungen','order=erstellt_am.desc&limit=150'),
+      // Alle Buchungen laden inkl. Bestellnotizen (menge_kg=0) — limit erhöht
+      api.get('lager_buchungen','order=erstellt_am.desc&limit=500'),
       api.get('lager_user_kuerzel','order=kuerzel.asc'),
       api.get('lager_ls_austrag','order=erstellt_am.desc&limit=300'),
       api.get('lager_kunden','order=name.asc'),
-      api.get('lager_ls_bestand','order=produkt_id.asc'),
-      api.get('lager_eingang','order=erstellt_am.desc&limit=100')
+      api.get('lager_ls_bestand','order=produkt_id.asc')
     ]);
-    // Eigenes Kürzel setzen
     const meins = userKuerzel.find(u => u.user_id === meineUserId);
     meinKuerzel = meins ? meins.kuerzel : '';
     sync('ok');
     renderProdukte(); renderUebersicht(); renderLog(); renderVerwaltung(); renderLS(); renderDifferenz(); renderHilfe();
+    updateUebersichtBadge();
   } catch(e) { sync('error'); toast('❌ Verbindungsfehler: ' + e.message); }
 }
 
-function sync(s) {
-  const d = document.getElementById('syncDot');
-  d.className = 'sync-dot' + (s !== 'ok' ? ' ' + s : '');
-}
+function sync(s) { const d = document.getElementById('syncDot'); d.className = 'sync-dot' + (s !== 'ok' ? ' ' + s : ''); }
 
 // ══════════════════════════════════════════════════════════
 // TABS / FILTER
@@ -526,43 +538,16 @@ function setFilter(f, btn) {
 // ══════════════════════════════════════════════════════════
 // HELFER
 // ══════════════════════════════════════════════════════════
-const iqq = (s) => s.replace(/[\s\/\.]/g,'_'); // ID-safe string
-function getMenge(pid, lo) {
-  const b = bestaende.find(b => b.produkt_id === pid && b.lagerort === lo);
-  return b ? Number(b.menge_kg) : 0;
-}
+const iqq = s => s.replace(/[\s\/\.]/g,'_');
+function getMenge(pid, lo) { const b = bestaende.find(b => b.produkt_id === pid && b.lagerort === lo); return b ? Number(b.menge_kg) : 0; }
 function uniqueNames() { return [...new Set(produkte.map(p => p.name))]; }
 function prodsFor(name) { return produkte.filter(p => p.name === name); }
-function gesamtKg(name) {
-  const ids = prodsFor(name).map(p => p.id);
-  return bestaende.filter(b => ids.includes(b.produkt_id)).reduce((s,b) => s + Number(b.menge_kg), 0);
-}
-function richtwert(name) {
-  // Summe aller Richtwerte pro Gebindegröße
-  const sum = prodsFor(name).reduce((s,p) => s + (Number(p.richtwert_kg)||0), 0);
-  return sum > 0 ? sum : null;
-}
-function getLsBestand(pid) {
-  // LS-Bestand: was laut Innendienst noch vorhanden sein sollte
-  const b = lsBestaende.find(b => b.produkt_id === pid);
-  return b ? Number(b.menge_kg) : null; // null = noch keine Inventur gemacht
-}
-function getLsBestandName(name) {
-  // LS-Bestand Summe über alle Gebindegrößen eines Produktnamens
-  const ids = prodsFor(name).map(p => p.id);
-  const eintraege = lsBestaende.filter(b => ids.includes(b.produkt_id));
-  if (!eintraege.length) return null; // noch keine Inventur
-  return eintraege.reduce((s,b) => s + Number(b.menge_kg), 0);
-}
-
-function richtwertProd(pid) {
-  const p = produkte.find(p => p.id === pid);
-  return p && p.richtwert_kg ? Number(p.richtwert_kg) : null;
-}
-function loKg(name, lo) {
-  const ids = prodsFor(name).map(p => p.id);
-  return bestaende.filter(b => ids.includes(b.produkt_id) && b.lagerort === lo).reduce((s,b) => s + Number(b.menge_kg), 0);
-}
+function gesamtKg(name) { const ids = prodsFor(name).map(p => p.id); return bestaende.filter(b => ids.includes(b.produkt_id)).reduce((s,b) => s + Number(b.menge_kg), 0); }
+function richtwert(name) { const sum = prodsFor(name).reduce((s,p) => s + (Number(p.richtwert_kg)||0), 0); return sum > 0 ? sum : null; }
+function richtwertProd(pid) { const p = produkte.find(p => p.id === pid); return p && p.richtwert_kg ? Number(p.richtwert_kg) : null; }
+function loKg(name, lo) { const ids = prodsFor(name).map(p => p.id); return bestaende.filter(b => ids.includes(b.produkt_id) && b.lagerort === lo).reduce((s,b) => s + Number(b.menge_kg), 0); }
+function getLsBestand(pid) { const b = lsBestaende.find(b => b.produkt_id === pid); return b ? Number(b.menge_kg) : null; }
+function getLsBestandName(name) { const ids = prodsFor(name).map(p => p.id); const e = lsBestaende.filter(b => ids.includes(b.produkt_id)); if (!e.length) return null; return e.reduce((s,b) => s + Number(b.menge_kg), 0); }
 
 // ══════════════════════════════════════════════════════════
 // BUCHEN
@@ -571,17 +556,14 @@ async function buchen(pid, lo, delta, notiz='') {
   sync('syncing');
   try {
     const neu = Math.max(0, getMenge(pid, lo) + Number(delta));
-    await api.upsert('lager_bestand', {
-      produkt_id: pid, lagerort: lo, menge_kg: neu,
-      aktualisiert_am: new Date().toISOString()
-    });
+    await api.upsert('lager_bestand', { produkt_id: pid, lagerort: lo, menge_kg: neu, aktualisiert_am: new Date().toISOString() });
     await api.post('lager_buchungen', { produkt_id: pid, lagerort: lo, menge_kg: delta, notiz: notiz||null, kuerzel: meinKuerzel||null });
     const idx = bestaende.findIndex(b => b.produkt_id===pid && b.lagerort===lo);
-    if (idx>=0) bestaende[idx].menge_kg = neu;
-    else bestaende.push({ produkt_id:pid, lagerort:lo, menge_kg:neu });
+    if (idx>=0) bestaende[idx].menge_kg = neu; else bestaende.push({ produkt_id:pid, lagerort:lo, menge_kg:neu });
     buchungen.unshift({ produkt_id:pid, lagerort:lo, menge_kg:delta, notiz, kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
     sync('ok');
     renderProdukte(); renderUebersicht(); renderLog();
+    updateUebersichtBadge();
     const pname = produkte.find(p => p.id===pid)?.name||'';
     toast(`${delta>0?'➕':'➖'} ${Math.abs(delta)} kg · ${pname} · ${lo}`);
   } catch(e) { sync('error'); toast('❌ ' + e.message); }
@@ -593,169 +575,82 @@ async function buchen(pid, lo, delta, notiz='') {
 function renderProdukte() {
   const raw = document.getElementById('searchInput').value.trim();
   const el = document.getElementById('produktListe');
-  // Scroll-Position und offene Karten merken
   const scrollEl = document.querySelector('.scroll-area');
   const scrollTop = scrollEl ? scrollEl.scrollTop : 0;
   const offene = [...document.querySelectorAll('.pc.open')].map(c => c.id);
-  const q = norm(raw); // nutzt globale norm Funktion
+  const q = norm(raw);
 
   const names = uniqueNames().filter(name => {
     if (q && !norm(name).includes(q)) return false;
     if (aktFilter === 'garage') return loKg(name,'Garage') > 0;
     if (aktFilter === 'werkstatt') return loKg(name,'Werkstatt') > 0;
-    if (aktFilter === 'niedrig') {
-      return prodsFor(name).some(p => {
-        const rw = richtwertProd(p.id);
-        if (!rw) return false;
-        return (getMenge(p.id,'Garage') + getMenge(p.id,'Werkstatt')) < rw * 0.5;
-      });
-    }
+    if (aktFilter === 'niedrig') return prodsFor(name).some(p => { const rw = richtwertProd(p.id); return rw && (getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt')) < rw*0.5; });
     return true;
   });
 
   if (!names.length) { el.innerHTML='<div class="empty">Keine Produkte gefunden</div>'; return; }
 
   el.innerHTML = names.map(name => {
-    const gkg = gesamtKg(name);
-    const rw = richtwert(name);
+    const gkg = gesamtKg(name), rw = richtwert(name);
     const pct = rw ? gkg/rw : 1;
     const barCls = pct < 0.3 ? 'bl' : pct < 0.5 ? 'bw' : '';
     const cardCls = pct < 0.3 ? 'pc-low' : pct < 0.5 ? 'pc-warn' : '';
-
-    const prods = prodsFor(name);
-    // Ein Chip pro Gebindegröße × Lagerort wo Bestand > 0
-    const chips = prods.flatMap(p => {
+    const chips = prodsFor(name).flatMap(p => ['Garage','Werkstatt'].map(lo => {
+      const kg = getMenge(p.id, lo); if (!kg) return '';
       const rwP = richtwertProd(p.id);
-      return ['Garage','Werkstatt'].map(lo => {
-        const kg = getMenge(p.id, lo);
-        if (!kg) return '';
-        const rwTxt = rwP ? ` · <span style="opacity:0.5;font-size:10px;">RW ${rwP}kg</span>` : '';
-        return `<span class="lchip ${lo.toLowerCase()}">
-          <span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> <strong>${kg}kg</strong>${rwTxt}
-        </span>`;
-      });
-    }).join('');
-
-    const rows = prodsFor(name).flatMap(p =>
-      ['Garage','Werkstatt'].map(lo => {
-        const kg = getMenge(p.id, lo);
-        const kan = p.gebinde_kg ? (kg/p.gebinde_kg).toFixed(1) : '–';
-        const sid = `${iqq(p.id)}_${lo}`;
-        return `<div class="gebinde-row">
-          <div class="gebinde-top">
-            <span class="gebinde-size-label">${p.gebinde_kg} kg Gebinde</span>
-            <span class="lort-badge ${lo.toLowerCase()}">${lo==='Garage'?'🔵':'🟡'} ${lo}</span>
+      return `<span class="lchip ${lo.toLowerCase()}"><span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> <strong>${kg}kg</strong>${rwP?` · <span style="opacity:0.5;font-size:10px;">RW ${rwP}kg</span>`:''}</span>`;
+    })).join('');
+    const rows = prodsFor(name).flatMap(p => ['Garage','Werkstatt'].map(lo => {
+      const kg = getMenge(p.id, lo), kan = p.gebinde_kg ? (kg/p.gebinde_kg).toFixed(1) : '–';
+      const sid = `${iqq(p.id)}_${lo}`;
+      return `<div class="gebinde-row">
+        <div class="gebinde-top"><span class="gebinde-size-label">${p.gebinde_kg} kg Gebinde</span><span class="lort-badge ${lo.toLowerCase()}">${lo==='Garage'?'🔵':'🟡'} ${lo}</span></div>
+        <div class="gebinde-mid">
+          <div class="menge-display"><div class="menge-kg">${kg} <span style="font-size:14px;color:var(--muted)">kg</span></div><div class="menge-sub">${kan} Gebinde à ${p.gebinde_kg} kg</div></div>
+          <div class="counter-group">
+            <button class="cbtn minus" onclick="qb('${p.id}','${lo}',-${p.gebinde_kg},event)">−</button>
+            <button class="cbtn plus" onclick="qb('${p.id}','${lo}',+${p.gebinde_kg},event)">+</button>
           </div>
-          <div class="gebinde-mid">
-            <div class="menge-display">
-              <div class="menge-kg">${kg} <span style="font-size:14px;color:var(--muted)">kg</span></div>
-              <div class="menge-sub">${kan} Gebinde à ${p.gebinde_kg} kg</div>
-            </div>
-            <div class="counter-group">
-              <button class="cbtn minus" onclick="qb('${p.id}','${lo}',-${p.gebinde_kg},event)">−</button>
-              <button class="cbtn plus"  onclick="qb('${p.id}','${lo}',+${p.gebinde_kg},event)">+</button>
-            </div>
-          </div>
-          <div class="manual-row">
-            <button id="sign_${sid}" onclick="toggleSign('${sid}')"
-              style="width:42px;height:42px;border-radius:8px;border:1px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;cursor:pointer;flex-shrink:0;">−</button>
-            <input type="number" class="manual-inp" id="m_${sid}" placeholder="Gebinde" step="1" min="0"
-              style="text-align:center;">
-            <input type="text" class="note-inp" id="n_${sid}" placeholder="Notiz (Kunde…)">
-            <button class="btn-ok" onclick="mb('${p.id}','${lo}','${sid}',${p.gebinde_kg})">OK</button>
-          </div>
-        </div>`;
-      })
-    ).join('');
-
+        </div>
+        <div class="manual-row">
+          <button id="sign_${sid}" onclick="toggleSign('${sid}')" style="width:42px;height:42px;border-radius:8px;border:1px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;cursor:pointer;flex-shrink:0;">−</button>
+          <input type="number" class="manual-inp" id="m_${sid}" placeholder="Gebinde" step="1" min="0" style="text-align:center;">
+          <input type="text" class="note-inp" id="n_${sid}" placeholder="Notiz (Kunde…)">
+          <button class="btn-ok" onclick="mb('${p.id}','${lo}','${sid}',${p.gebinde_kg})">OK</button>
+        </div>
+      </div>`;
+    })).join('');
     return `<div class="pc ${cardCls}" id="pc_${iqq(name)}">
       <div class="pc-bar ${barCls}"></div>
       <div class="pc-header" onclick="this.parentElement.classList.toggle('open')">
         <div class="pc-name">${name}</div>
-        <div>
-          <div class="pc-total-kg">${gkg} kg</div>
-          ${rw?`<div class="pc-total-rw">Richtwert: ${rw} kg</div>`:''}
-        </div>
+        <div><div class="pc-total-kg">${gkg} kg</div>${rw?`<div class="pc-total-rw">Richtwert: ${rw} kg</div>`:''}</div>
         <span class="chev">▼</span>
       </div>
-      <div class="chip-row">
-        ${chips||'<span style="font-size:12px;color:#94a3b8">Noch kein Bestand – nur über Verwaltung einbuchen</span>'}
-      </div>
+      <div class="chip-row">${chips||'<span style="font-size:12px;color:#94a3b8">Noch kein Bestand – nur über Verwaltung einbuchen</span>'}</div>
       <div class="pc-detail">${rows}</div>
     </div>`;
   }).join('');
-  // Offene Karten nach Re-Render wiederherstellen
+
   setTimeout(() => {
-    offene.forEach(id => {
-      const c = document.getElementById(id);
-      if (c) c.classList.add('open');
-    });
-    // Scroll-Position wiederherstellen
+    offene.forEach(id => { const c = document.getElementById(id); if (c) c.classList.add('open'); });
     if (scrollEl) scrollEl.scrollTop = scrollTop;
   }, 0);
 }
 
 async function qb(pid,lo,delta,e) { e.stopPropagation(); await buchen(pid,lo,delta); }
 function toggleSign(sid) {
-  const btn = document.getElementById('sign_'+sid);
-  if (!btn) return;
-  if (btn.textContent === '−') {
-    btn.textContent = '+';
-    btn.style.background = '#f0fdf4';
-    btn.style.borderColor = '#86efac';
-    btn.style.color = '#15803d';
-  } else {
-    btn.textContent = '−';
-    btn.style.background = '#fef2f2';
-    btn.style.borderColor = '#fca5a5';
-    btn.style.color = '#b91c1c';
-  }
+  const btn = document.getElementById('sign_'+sid); if (!btn) return;
+  if (btn.textContent==='−') { btn.textContent='+'; btn.style.background='#f0fdf4'; btn.style.borderColor='#86efac'; btn.style.color='#15803d'; }
+  else { btn.textContent='−'; btn.style.background='#fef2f2'; btn.style.borderColor='#fca5a5'; btn.style.color='#b91c1c'; }
 }
-
 async function mb(pid,lo,sid,gebinde) {
-  const inp=document.getElementById('m_'+sid);
-  const noteInp=document.getElementById('n_'+sid);
-  const signBtn=document.getElementById('sign_'+sid);
+  const inp=document.getElementById('m_'+sid), noteInp=document.getElementById('n_'+sid), signBtn=document.getElementById('sign_'+sid);
   const anzahl=parseFloat(inp.value);
   if(isNaN(anzahl)||anzahl<=0){toast('⚠️ Bitte Anzahl Gebinde eingeben');return;}
-  const isNeg = !signBtn || signBtn.textContent === '−';
-  const deltaKg = (isNeg ? -1 : 1) * anzahl * gebinde;
-  const notiz=noteInp?.value.trim()||'';
+  const deltaKg=((!signBtn||signBtn.textContent==='−')?-1:1)*anzahl*gebinde;
   inp.value=''; if(noteInp) noteInp.value='';
-  await buchen(pid,lo,deltaKg,notiz);
-}
-
-// ══════════════════════════════════════════════════════════
-// NEUES PRODUKT
-// ══════════════════════════════════════════════════════════
-function openModal() { document.getElementById('modalNeu').classList.add('open'); }
-function closeModal() { document.getElementById('modalNeu').classList.remove('open'); }
-
-async function speichereNeuesProdukt() {
-  const name = document.getElementById('neu-name').value.trim();
-  const geb = parseInt(document.getElementById('neu-gebinde').value);
-  const rw = parseFloat(document.getElementById('neu-richtwert').value)||null;
-  const start = parseFloat(document.getElementById('neu-startmenge')?.value)||null;
-  if(!name||!geb){toast('⚠️ Name und Gebindegröße erforderlich');return;}
-  sync('syncing');
-  try {
-    const res = await api.post('lager_produkte', {name, gebinde_kg:geb, richtwert_kg:rw});
-    const np = res[0];
-    produkte.push(np);
-    produkte.sort((a,b)=>a.name.localeCompare(b.name));
-    // Startmenge als Inventur in Garage buchen
-    if (start && start > 0) {
-      await api.upsert('lager_bestand', {produkt_id:np.id, lagerort:'Garage', menge_kg:start, aktualisiert_am:new Date().toISOString()});
-      await api.post('lager_buchungen', {produkt_id:np.id, lagerort:'Garage', menge_kg:start, notiz:'Inventur/Start', kuerzel:meinKuerzel||null});
-      bestaende.push({produkt_id:np.id, lagerort:'Garage', menge_kg:start});
-      await lsBestandSetzen(np.id, start, 'Inventur/Start');
-      buchungen.unshift({produkt_id:np.id, lagerort:'Garage', menge_kg:start, notiz:'Inventur/Start', kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString()});
-    }
-    sync('ok');
-    ['neu-name','neu-gebinde','neu-richtwert','neu-startmenge'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    renderProdukte(); renderUebersicht(); renderVerwaltung(); renderLS(); renderDifferenz();
-    toast('✅ ' + name + (start ? ` — ${start} kg in Garage` : ' angelegt'));
-  } catch(e){sync('error');toast('❌ '+e.message);}
+  await buchen(pid,lo,deltaKg,noteInp?.value.trim()||'');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -767,63 +662,86 @@ function renderUebersicht() {
   const wKg = bestaende.filter(b=>b.lagerort==='Werkstatt').reduce((s,b)=>s+Number(b.menge_kg),0);
   const niedrig = uniqueNames().filter(n=>{const rw=richtwert(n);return rw&&gesamtKg(n)<rw*0.5;});
 
+  let nachbestellenHTML = '';
+  if (niedrig.length) {
+    const rows = niedrig.map(name => {
+      const kg=gesamtKg(name), rw=richtwert(name), pct=Math.round(kg/rw*100);
+      const aktiveNotiz = getAktiveBestellnotiz(name);
+      const sid = 'bk_' + name.replace(/[^a-zA-Z0-9]/g,'_');
+      // Notiztext ohne Prefix für Anzeige
+      const notizText = aktiveNotiz ? aktiveNotiz.notiz.replace(BESTELL_PREFIX,'') : '';
+      const notizDatum = aktiveNotiz ? fmtDatum(aktiveNotiz.erstellt_am) : '';
+      const notizKuerzel = aktiveNotiz?.kuerzel ? ` · ${aktiveNotiz.kuerzel}` : '';
+
+      const aktivBlock = aktiveNotiz ? `
+        <div class="bestell-aktiv">
+          <span class="bestell-aktiv-icon">🗒️</span>
+          <div style="flex:1;">
+            <div class="bestell-aktiv-text">${notizText}</div>
+            <div class="bestell-aktiv-meta">${notizDatum}${notizKuerzel}</div>
+          </div>
+          <button class="bestell-aktiv-del" onclick="loescheBestellnotiz('${aktiveNotiz.id}')" title="Notiz löschen">✕</button>
+        </div>` : '';
+
+      // Placeholder je nach Status
+      const placeholder = aktiveNotiz
+        ? 'Notiz aktualisieren…'
+        : 'z.B. bestellt 10.06. bei Lieferant X…';
+
+      return `<div class="bestell-row">
+        <div class="bestell-header">
+          <span class="bestell-name">${name}</span>
+          <span class="bestell-kg">${kg} kg <span style="color:#94a3b8;font-size:10px;font-weight:400">/ ${rw} kg (${pct}%)</span></span>
+        </div>
+        ${aktivBlock}
+        <div class="bestell-input-row">
+          <input type="text" class="bestell-inp" id="${sid}"
+            placeholder="${placeholder}"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();speichereBestellnotiz('${name.replace(/'/g,"\\'")}','${sid}');}">
+          <button class="bestell-btn" onclick="speichereBestellnotiz('${name.replace(/'/g,"\\'")}','${sid}')">🗒️ Speichern</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    nachbestellenHTML = `
+    <div class="sl">⚠️ Nachbestellen</div>
+    <div class="card" style="border-color:#fca5a5;">
+      <div style="background:#fef2f2;border-bottom:2px solid #fca5a5;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:#b91c1c;">⚠️ ${niedrig.length} Produkt${niedrig.length>1?'e':''} unter 50% Richtwert</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;">Notizen für alle sichtbar</span>
+      </div>
+      <div class="card-body" style="padding:0 14px;">
+        <div style="font-size:11px;color:#94a3b8;padding:8px 0 4px;font-family:'DM Mono',monospace;">
+          🗒️ = aktive Notiz · Eingang buchen löscht die Notiz automatisch
+        </div>
+        ${rows}
+      </div>
+    </div>`;
+  } else {
+    nachbestellenHTML = `
+    <div class="sl">Status</div>
+    <div class="card"><div class="card-body" style="text-align:center;padding:20px;color:var(--ok);font-weight:600">✅ Alle Bestände im grünen Bereich</div></div>`;
+  }
+
   el.innerHTML = `
     <div class="sl" style="margin-top:14px">Lagerübersicht</div>
     <div class="stat-grid">
-      <div class="stat-card" style="border-color:#7dd3fc">
-        <div class="stat-label">🔵 Garage</div>
-        <div class="stat-val" style="color:var(--surface2)">${gKg}</div>
-        <div class="stat-sub">kg gesamt</div>
-      </div>
-      <div class="stat-card" style="border-color:#fcd34d">
-        <div class="stat-label">🟡 Werkstatt</div>
-        <div class="stat-val" style="color:var(--warn)">${wKg}</div>
-        <div class="stat-sub">kg gesamt</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">📦 Produkte</div>
-        <div class="stat-val">${uniqueNames().length}</div>
-        <div class="stat-sub">erfasst</div>
-      </div>
-      <div class="stat-card" style="${niedrig.length?'border-color:#fca5a5':''}">
-        <div class="stat-label">⚠️ Niedrig</div>
-        <div class="stat-val" style="color:${niedrig.length?'var(--err)':'var(--ok)'}">${niedrig.length}</div>
-        <div class="stat-sub">unter 50% Richtwert</div>
-      </div>
+      <div class="stat-card" style="border-color:#7dd3fc"><div class="stat-label">🔵 Garage</div><div class="stat-val" style="color:var(--surface2)">${gKg}</div><div class="stat-sub">kg gesamt</div></div>
+      <div class="stat-card" style="border-color:#fcd34d"><div class="stat-label">🟡 Werkstatt</div><div class="stat-val" style="color:var(--warn)">${wKg}</div><div class="stat-sub">kg gesamt</div></div>
+      <div class="stat-card"><div class="stat-label">📦 Produkte</div><div class="stat-val">${uniqueNames().length}</div><div class="stat-sub">erfasst</div></div>
+      <div class="stat-card" style="${niedrig.length?'border-color:#fca5a5':''}"><div class="stat-label">⚠️ Nachbestellen</div><div class="stat-val" style="color:${niedrig.length?'var(--err)':'var(--ok)'}">${niedrig.length}</div><div class="stat-sub">unter 50% Richtwert</div></div>
     </div>
-
-    ${niedrig.length ? `
-    <div class="sl">⚠️ Nachbestellen</div>
-    <div class="card"><div class="card-body">
-      ${niedrig.map(name=>{
-        const kg=gesamtKg(name), rw=richtwert(name), pct=Math.round(kg/rw*100);
-        return `<div class="rr"><span class="rl">${name}</span>
-          <span class="rv err">${kg} kg <span style="color:#94a3b8;font-size:11px">/ ${rw} kg (${pct}%)</span></span></div>`;
-      }).join('')}
-    </div></div>` : `
-    <div class="sl">Status</div>
-    <div class="card"><div class="card-body" style="text-align:center;padding:20px;color:var(--ok);font-weight:600">
-      ✅ Alle Bestände im grünen Bereich
-    </div></div>`}
-
+    ${nachbestellenHTML}
     <div class="sl">Alle Produkte</div>
     <div class="card"><div class="card-body">
       ${uniqueNames().map(name=>{
-        const kg=gesamtKg(name), rw=richtwert(name);
-        const isLow=rw&&kg<rw*0.5;
-        const gk=loKg(name,'Garage'), wk=loKg(name,'Werkstatt');
-        return `<div class="rr">
-          <div class="rl">${name}
-            <div style="margin-top:2px;display:flex;gap:8px">
-              ${gk>0?`<span style="font-size:10px;color:var(--surface2)">🔵 ${gk} kg</span>`:''}
-              ${wk>0?`<span style="font-size:10px;color:var(--warn)">🟡 ${wk} kg</span>`:''}
-            </div>
-          </div>
-          <span class="rv ${isLow?'err':''}">${kg} kg</span>
-        </div>`;
+        const kg=gesamtKg(name),rw=richtwert(name),isLow=rw&&kg<rw*0.5;
+        const gk=loKg(name,'Garage'),wk=loKg(name,'Werkstatt');
+        return `<div class="rr"><div class="rl">${name}<div style="margin-top:2px;display:flex;gap:8px">${gk>0?`<span style="font-size:10px;color:var(--surface2)">🔵 ${gk} kg</span>`:''}${wk>0?`<span style="font-size:10px;color:var(--warn)">🟡 ${wk} kg</span>`:''}</div></div><span class="rv ${isLow?'err':''}">${kg} kg</span></div>`;
       }).join('')}
-    </div></div>
-  `;
+    </div></div>`;
+
+  updateUebersichtBadge();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -831,160 +749,117 @@ function renderUebersicht() {
 // ══════════════════════════════════════════════════════════
 function renderLog(filterQ='') {
   const el = document.getElementById('logContent');
-
-  // Buchungen (Außendienst) und LS-Austraege (Innendienst) zusammenführen
   let alleBuchungen = [
     ...buchungen.map(b => ({ ...b, _typ: 'AD' })),
     ...lsAustraege.map(ls => ({ ...ls, _typ: 'LS', lagerort: 'LS', menge_kg: ls.menge_kg }))
   ].sort((a,b) => new Date(b.erstellt_am) - new Date(a.erstellt_am));
 
-  // Filter anwenden
   if (filterQ) {
     const q = norm(filterQ);
     alleBuchungen = alleBuchungen.filter(b => {
       const p = produkte.find(p => p.id === b.produkt_id);
-      const pname = p ? norm(p.name) : '';
-      const kuerzel = (b.kuerzel||'').toLowerCase();
-      const kunde = norm(b.kunde||'');
-      return pname.includes(q) || kuerzel.includes(q) || kunde.includes(q);
+      return norm(p?p.name:'').includes(q) || (b.kuerzel||'').toLowerCase().includes(q) || norm(b.kunde||'').includes(q) || norm(b.notiz||'').includes(q);
     });
   }
-  alleBuchungen = alleBuchungen.slice(0, 200);
+  alleBuchungen = alleBuchungen.slice(0, 300);
 
-  if (!alleBuchungen.length) { el.innerHTML = `
-    <div style="position:relative;margin:12px 0 10px;">
-      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
-      <input type="search" class="search-input" id="logSuche" value="${filterQ}"
-        oninput="renderLog(this.value)" placeholder="Produkt, Kürzel oder Kunde…"
-        style="margin-bottom:0;" data-focus="1">
-    </div>
-    <div class="empty">Keine Einträge gefunden</div>`; return; }
+  const searchBar = `<div style="position:relative;margin:12px 0 10px;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span><input type="search" class="search-input" id="logSuche" value="${filterQ}" oninput="renderLog(this.value)" placeholder="Produkt, Kürzel, Notiz…" data-focus="1"></div>`;
 
-  el.innerHTML = `
-    <div style="position:relative;margin:12px 0 10px;">
-      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
-      <input type="search" class="search-input" id="logSuche" value="${filterQ}"
-        oninput="renderLog(this.value)" placeholder="Produkt, Kürzel oder Kunde…" data-focus="1">
-    </div>
-    <div>` + alleBuchungen.map(b => {
+  if (!alleBuchungen.length) { el.innerHTML = searchBar + '<div class="empty">Keine Einträge gefunden</div>'; return; }
+
+  el.innerHTML = searchBar + '<div>' + alleBuchungen.map(b => {
     const p = produkte.find(p => p.id === b.produkt_id);
-    const pos = Number(b.menge_kg) > 0;
-    const datum = fmtDatum(b.erstellt_am);
+    const menge = Number(b.menge_kg);
+    const istNotiz = b._typ === 'AD' && b.notiz && b.notiz.startsWith(BESTELL_PREFIX);
     const istLS = b._typ === 'LS';
-    const lortStyle = istLS
-      ? 'background:#fffbeb;color:#b45309;border:none;'
-      : (b.lagerort ? '' : '');
-    const lortLabel = istLS ? 'LS' : b.lagerort;
-    const lortClass = istLS ? '' : (b.lagerort ? b.lagerort.toLowerCase() : '');
+    const pos = menge > 0;
+
+    let signHtml, signClass, lortStyle, lortLabel, lortClass;
+    if (istNotiz) {
+      signHtml = '🗒️<br><span style="font-size:9px;">Notiz</span>';
+      signClass = 'note';
+      lortLabel = 'Bestellnotiz'; lortClass = 'notiz'; lortStyle = '';
+    } else if (istLS) {
+      signHtml = `${pos?'+':''}${menge}<br><span style="font-size:10px;color:var(--muted)">kg</span>`;
+      signClass = pos ? 'pos' : 'neg';
+      lortLabel = 'LS'; lortClass = ''; lortStyle = 'background:#fffbeb;color:#b45309;border:none;';
+    } else {
+      signHtml = `${pos?'+':''}${menge}<br><span style="font-size:10px;color:var(--muted)">kg</span>`;
+      signClass = pos ? 'pos' : 'neg';
+      lortLabel = b.lagerort||''; lortClass = b.lagerort ? b.lagerort.toLowerCase() : ''; lortStyle = '';
+    }
+
+    const notizAnzeige = istNotiz
+      ? b.notiz.replace(BESTELL_PREFIX,'')
+      : (!istLS && b.notiz ? ' · ' + b.notiz : '');
     const lsDat = istLS && b.ls_datum ? ' · LS: ' + fmtDatumKurz(b.ls_datum) : '';
     const kundeInfo = istLS && b.kunde ? ' · ' + b.kunde : '';
-    return `<div class="log-item" style="${istLS ? 'border-color:#fcd34d;' : ''}">
-      <div class="log-sign ${pos?'pos':'neg'}">${pos?'+':''}${b.menge_kg}<br><span style="font-size:10px;color:var(--muted)">kg</span></div>
+
+    return `<div class="log-item" style="${istLS?'border-color:#fcd34d;':''} ${istNotiz?'border-color:#c4b5fd;background:#faf5ff;':''}">
+      <div class="log-sign ${signClass}">${signHtml}</div>
       <div class="log-info">
-        <div class="log-prod">${p?p.name:'–'}
-          <span class="lort-sm ${lortClass}" style="${lortStyle}">${lortLabel}</span>
-        </div>
-        <div class="log-meta">${datum}${b.kuerzel?' · <strong>'+b.kuerzel+'</strong>':''}${kundeInfo}${lsDat}${!istLS&&b.notiz?' · '+b.notiz:''}</div>
+        <div class="log-prod">${p?p.name:'–'} <span class="lort-sm ${lortClass}" style="${lortStyle}">${lortLabel}</span></div>
+        <div class="log-meta">${fmtDatum(b.erstellt_am)}${b.kuerzel?' · <strong>'+b.kuerzel+'</strong>':''}${kundeInfo}${lsDat}${notizAnzeige?(' · '+notizAnzeige):''}</div>
       </div>
     </div>`;
-  }).join('') + '</div></div>';
+  }).join('') + '</div>';
 
-  // Fokus wiederherstellen
-  setTimeout(() => {
-    const sf = document.getElementById('logSuche');
-    if (sf && filterQ) { sf.focus(); sf.setSelectionRange(sf.value.length, sf.value.length); }
-  }, 0);
+  setTimeout(() => { const sf = document.getElementById('logSuche'); if (sf && filterQ) { sf.focus(); sf.setSelectionRange(sf.value.length, sf.value.length); } }, 0);
 }
 
 // ══════════════════════════════════════════════════════════
-// TOAST
+// TOAST / UPDATE
 // ══════════════════════════════════════════════════════════
 let _tt;
-function toast(msg) {
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2500);
-}
-
+function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2500); }
+function applyUpdate() { navigator.serviceWorker.getRegistration().then(reg => { if (reg && reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' }); else location.reload(); }); }
 
 // ══════════════════════════════════════════════════════════
-// SERVICE WORKER UPDATE
-// ══════════════════════════════════════════════════════════
-function applyUpdate() {
-  navigator.serviceWorker.getRegistration().then(reg => {
-    if (reg && reg.waiting) {
-      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    } else {
-      location.reload();
-    }
-  });
-}
-
-// ══════════════════════════════════════════════════════════
-// VERWALTUNG – Richtwerte anpassen
+// VERWALTUNG
 // ══════════════════════════════════════════════════════════
 function renderVerwaltung(filterQ='') {
-  // Aktives Element vor Re-Render merken
   const activeId = document.activeElement?.id;
   const el = document.getElementById('verwaltungContent');
   const names = uniqueNames().filter(n => !filterQ || norm(n).includes(norm(filterQ)));
 
   el.innerHTML = `
-    <!-- NEUES PRODUKT GANZ OBEN -->
     <div class="card" style="margin-top:12px;margin-bottom:10px;">
       <div class="card-title">＋ Neues Produkt anlegen</div>
       <div class="card-body">
         <div class="r2">
-          <div class="f"><label>Produktname</label><input type="text" id="neu-name" placeholder="z.B. BZ 999"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-gebinde')?.focus();}"></div>
-          <div class="f"><label>Gebinde (kg)</label><input type="number" id="neu-gebinde" placeholder="z.B. 20"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-richtwert')?.focus();}"></div>
+          <div class="f"><label>Produktname</label><input type="text" id="neu-name" placeholder="z.B. BZ 999" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-gebinde')?.focus();}"></div>
+          <div class="f"><label>Gebinde (kg)</label><input type="number" id="neu-gebinde" placeholder="z.B. 20" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-richtwert')?.focus();}"></div>
         </div>
         <div class="r2">
-          <div class="f"><label>Richtwert (kg, optional)</label><input type="number" id="neu-richtwert" placeholder="optional"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-startmenge')?.focus();}"></div>
-          <div class="f"><label>Startmenge (kg, optional)</label><input type="number" id="neu-startmenge" placeholder="Inventur-Start"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();speichereNeuesProdukt();}"></div>
+          <div class="f"><label>Richtwert (kg, optional)</label><input type="number" id="neu-richtwert" placeholder="optional" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-startmenge')?.focus();}"></div>
+          <div class="f"><label>Startmenge (kg, optional)</label><input type="number" id="neu-startmenge" placeholder="Inventur-Start" onkeydown="if(event.key==='Enter'){event.preventDefault();speichereNeuesProdukt();}"></div>
         </div>
         <button onclick="speichereNeuesProdukt()" class="btn-save" style="margin-top:6px;">＋ Anlegen</button>
       </div>
     </div>
-
-    <!-- SUCHLEISTE DARUNTER -->
     <div style="position:relative;margin-bottom:10px;">
       <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
-      <input type="search" id="verwaltungSuche" value="${filterQ}"
-        oninput="renderVerwaltung(this.value)"
-        placeholder="Produkt suchen… z.B. BZ 300"
-        style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;"
-        data-focus="1">
+      <input type="search" id="verwaltungSuche" value="${filterQ}" oninput="renderVerwaltung(this.value)" placeholder="Produkt suchen…" style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;" data-focus="1">
     </div>
     <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">
-      ℹ️ <strong>SET</strong> = Ist-Bestand direkt setzen (Inventur/Anlieferung) · <strong>RW</strong> = Richtwert pro Gebindegröße
+      ℹ️ <strong>SET</strong> = Ist-Bestand direkt setzen (Inventur) · <strong>RW</strong> = Richtwert · <strong>EINGANG</strong> = Anlieferung buchen
     </div>
-
     ${names.map(name => {
-      const prods = prodsFor(name);
-      const gkg = gesamtKg(name);
-      const rw = richtwert(name);
-      const pct = rw ? gkg/rw : 1;
-      const barColor = pct < 0.3 ? '#b91c1c' : pct < 0.5 ? '#b45309' : '#7dd3fc';
-
-      const zeilen = prods.map(p => {
-        const rwP = richtwertProd(p.id);
-        const rwsid = ('rw_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
-        const lagerorte = ['Garage','Werkstatt'].map(lo => {
-          const kg = getMenge(p.id, lo);
-          const vsid = (p.id+'_'+lo).replace(/[^a-zA-Z0-9]/g,'_');
+      const prods=prodsFor(name), gkg=gesamtKg(name), rw=richtwert(name), pct=rw?gkg/rw:1;
+      const barColor=pct<0.3?'#b91c1c':pct<0.5?'#b45309':'#7dd3fc';
+      const zeilen=prods.map(p=>{
+        const rwP=richtwertProd(p.id);
+        const rwsid=('rw_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
+        const einsid=('ein_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
+        const lagerorte=['Garage','Werkstatt'].map(lo=>{
+          const kg=getMenge(p.id,lo), vsid=(p.id+'_'+lo).replace(/[^a-zA-Z0-9]/g,'_');
           return `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #f1f5f9;">
             <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;padding:2px 8px;border-radius:4px;white-space:nowrap;min-width:80px;${lo==='Garage'?'background:#e0f2fe;color:#0369a1':'background:#fffbeb;color:#b45309'}">${lo==='Garage'?'🔵':'🟡'} ${lo}</span>
             <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;flex:1;">${kg} <span style="font-size:11px;color:#64748b">kg</span></div>
             <input type="number" id="ist_${vsid}" placeholder="kg setzen" style="width:85px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:6px 8px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;text-align:right;">
-            <button onclick="bestaetigeSet('${p.id}','${lo}','${vsid}')" style="background:#475569;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;opacity:0.8;">SET</button>
+            <button onclick="bestaetigeSet('${p.id}','${lo}','${vsid}')" style="background:#475569;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">SET</button>
           </div>`;
         }).join('');
-        // Eingang-Zeile für dieses Gebinde
-        const einsid = ('ein_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
         return `<div style="border-bottom:1px solid #e0f2fe;">
           <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f8fafc;flex-wrap:wrap;">
             <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;color:#475569;flex:1;min-width:80px;">${p.gebinde_kg} KG GEBINDE</span>
@@ -998,940 +873,383 @@ function renderVerwaltung(filterQ='') {
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#f0fdf4;border:2px solid #86efac;border-radius:8px;padding:8px 10px;margin-top:4px;">
               <span style="font-size:13px;color:#15803d;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.5px;">📦 EINGANG</span>
               <input type="number" id="${einsid}" placeholder="kg" style="width:70px;background:#fff;border:1px solid #86efac;border-radius:6px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:14px;color:#0f172a;outline:none;text-align:right;">
-              <select id="${einsid}_lo" style="background:#fff;border:1px solid #86efac;border-radius:6px;padding:7px 8px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#15803d;outline:none;">
-                <option value="Garage">🔵 Garage</option>
-                <option value="Werkstatt">🟡 Werkstatt</option>
-              </select>
-              <input type="text" id="${einsid}_ls" placeholder="LS-Nr. (optional)" style="width:130px;background:#fff;border:1px solid #86efac;border-radius:6px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;" title="Lieferschein-Nummer (optional)">
+              <select id="${einsid}_lo" style="background:#fff;border:1px solid #86efac;border-radius:6px;padding:7px 8px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#15803d;outline:none;"><option value="Garage">🔵 Garage</option><option value="Werkstatt">🟡 Werkstatt</option></select>
+              <input type="text" id="${einsid}_ls" placeholder="LS-Nr. (optional)" style="width:130px;background:#fff;border:1px solid #86efac;border-radius:6px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;">
               <button onclick="buchen_eingang('${p.id}','${einsid}')" style="background:#15803d;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.5px;cursor:pointer;flex:1;min-width:60px;">＋ Einbuchen</button>
             </div>
           </div>
           ${lagerorte}
         </div>`;
       }).join('');
-
       return `<div class="card" style="margin-bottom:10px;">
         <div style="height:3px;background:${barColor};"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f0f9ff;border-bottom:1px solid #e0f2fe;">
           <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#0f172a;">${name}</div>
-          <div style="text-align:right;">
-            <div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:500;">${gkg} kg</div>
-            ${rw?`<div style="font-size:10px;color:#64748b">Richtwert: ${rw} kg</div>`:''}
-          </div>
+          <div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:500;">${gkg} kg</div>${rw?`<div style="font-size:10px;color:#64748b">Richtwert: ${rw} kg</div>`:''}</div>
         </div>
         ${zeilen}
       </div>`;
     }).join('')}
-
-    <!-- Techniker-Kürzel -->
     <div class="sl">Techniker-Kürzel</div>
-    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">
-      ℹ️ Kürzel erscheinen im Log. User-ID findest du in Supabase → Authentication → Users.
-    </div>
-    <div class="card">
-      <div class="card-title">Kürzel verwalten</div>
-      <div class="card-body" style="padding:0">
-        ${userKuerzel.map(u => `
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #e0f2fe;">
-            <div style="flex:1;">
-              <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;">${u.kuerzel}</div>
-              <div style="font-family:'DM Mono',monospace;font-size:11px;color:#64748b;">${u.name||''}</div>
-            </div>
-            <button onclick="loescheKuerzel('${u.id}')" style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">✕</button>
-          </div>`).join('')}
-        <div style="padding:12px 14px;background:#f8fafc;">
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-            <input type="text" id="neu-kuerzel" placeholder="Kürzel (z.B. IG)" style="width:80px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:8px;font-family:'DM Mono',monospace;font-size:14px;outline:none;text-transform:uppercase;">
-            <input type="text" id="neu-kuerzel-name" placeholder="Name (optional)" style="flex:1;min-width:120px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;">
-            <input type="text" id="neu-kuerzel-uid" placeholder="User-ID (aus Supabase)" style="flex:2;min-width:160px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:8px;font-family:'DM Mono',monospace;font-size:12px;outline:none;">
-            <button onclick="speichereKuerzel()" style="background:#0369a1;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">＋ Hinzufügen</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  // Fokus wiederherstellen nach Re-Render
+    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">ℹ️ User-ID findest du in Supabase → Authentication → Users.</div>
+    <div class="card"><div class="card-title">Kürzel verwalten</div><div class="card-body" style="padding:0">
+      ${userKuerzel.map(u=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #e0f2fe;"><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;">${u.kuerzel}</div><div style="font-family:'DM Mono',monospace;font-size:11px;color:#64748b;">${u.name||''}</div></div><button onclick="loescheKuerzel('${u.id}')" style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">✕</button></div>`).join('')}
+      <div style="padding:12px 14px;background:#f8fafc;"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="neu-kuerzel" placeholder="Kürzel (z.B. IG)" style="width:80px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:8px;font-family:'DM Mono',monospace;font-size:14px;outline:none;text-transform:uppercase;">
+        <input type="text" id="neu-kuerzel-name" placeholder="Name (optional)" style="flex:1;min-width:120px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:8px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;">
+        <input type="text" id="neu-kuerzel-uid" placeholder="User-ID (aus Supabase)" style="flex:2;min-width:160px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:8px;font-family:'DM Mono',monospace;font-size:12px;outline:none;">
+        <button onclick="speichereKuerzel()" style="background:#0369a1;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">＋</button>
+      </div></div>
+    </div></div>`;
+
   setTimeout(() => {
-    if (activeId) {
-      const el = document.getElementById(activeId);
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) {
-        el.focus();
-        if (el.type === 'search' || el.type === 'text') {
-          el.setSelectionRange(el.value.length, el.value.length);
-        }
-      }
-    }
+    if (activeId) { const el2=document.getElementById(activeId); if (el2&&(el2.tagName==='INPUT'||el2.tagName==='SELECT')) { el2.focus(); if (el2.type==='search'||el2.type==='text') el2.setSelectionRange(el2.value.length,el2.value.length); } }
   }, 0);
 }
 
-async function speichereKuerzel() {
-  const kuerzel = document.getElementById('neu-kuerzel').value.trim().toUpperCase();
-  const name = document.getElementById('neu-kuerzel-name').value.trim();
-  const uid = document.getElementById('neu-kuerzel-uid').value.trim();
-  if (!kuerzel || !uid) { toast('⚠️ Kürzel und User-ID erforderlich'); return; }
+async function speichereNeuesProdukt() {
+  const name=document.getElementById('neu-name').value.trim(), geb=parseInt(document.getElementById('neu-gebinde').value);
+  const rw=parseFloat(document.getElementById('neu-richtwert').value)||null, start=parseFloat(document.getElementById('neu-startmenge')?.value)||null;
+  if(!name||!geb){toast('⚠️ Name und Gebindegröße erforderlich');return;}
   sync('syncing');
   try {
-    const res = await api.post('lager_user_kuerzel', { kuerzel, name: name||null, user_id: uid });
-    userKuerzel.push(res[0]);
+    const res=await api.post('lager_produkte',{name,gebinde_kg:geb,richtwert_kg:rw});
+    const np=res[0]; produkte.push(np); produkte.sort((a,b)=>a.name.localeCompare(b.name));
+    if(start&&start>0){
+      await api.upsert('lager_bestand',{produkt_id:np.id,lagerort:'Garage',menge_kg:start,aktualisiert_am:new Date().toISOString()});
+      const bres=await api.post('lager_buchungen',{produkt_id:np.id,lagerort:'Garage',menge_kg:start,notiz:'Inventur/Start',kuerzel:meinKuerzel||null});
+      bestaende.push({produkt_id:np.id,lagerort:'Garage',menge_kg:start});
+      buchungen.unshift(bres[0]);
+      await lsBestandSetzen(np.id,start);
+    }
     sync('ok');
-    renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
-    toast('✅ Kürzel angelegt: ' + kuerzel);
-  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+    ['neu-name','neu-gebinde','neu-richtwert','neu-startmenge'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    renderProdukte();renderUebersicht();renderVerwaltung();renderLS();renderDifferenz();updateUebersichtBadge();
+    toast('✅ '+name+(start?` — ${start} kg in Garage`:' angelegt'));
+  }catch(e){sync('error');toast('❌ '+e.message);}
 }
 
+async function speichereKuerzel() {
+  const kuerzel=document.getElementById('neu-kuerzel').value.trim().toUpperCase(), name=document.getElementById('neu-kuerzel-name').value.trim(), uid=document.getElementById('neu-kuerzel-uid').value.trim();
+  if(!kuerzel||!uid){toast('⚠️ Kürzel und User-ID erforderlich');return;}
+  sync('syncing');
+  try { const res=await api.post('lager_user_kuerzel',{kuerzel,name:name||null,user_id:uid}); userKuerzel.push(res[0]); sync('ok'); renderVerwaltung(document.getElementById('verwaltungSuche')?.value||''); toast('✅ Kürzel: '+kuerzel); }
+  catch(e){sync('error');toast('❌ '+e.message);}
+}
 async function loescheKuerzel(id) {
   sync('syncing');
-  try {
-    await fetch(`${SUPABASE_URL}/rest/v1/lager_user_kuerzel?id=eq.${id}`, {
-      method:'DELETE', headers: api.h()
-    });
-    userKuerzel = userKuerzel.filter(u => u.id !== id);
-    sync('ok');
-    renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
-    toast('🗑️ Kürzel gelöscht');
-  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+  try { await api.delete('lager_user_kuerzel',`id=eq.${id}`); userKuerzel=userKuerzel.filter(u=>u.id!==id); sync('ok'); renderVerwaltung(document.getElementById('verwaltungSuche')?.value||''); toast('🗑️ Kürzel gelöscht'); }
+  catch(e){sync('error');toast('❌ '+e.message);}
 }
-
 async function buchen_eingang(pid, einsid) {
-  const inp = document.getElementById(einsid);
-  const loSel = document.getElementById(einsid+'_lo');
-  // LS-Nummer aus optionalem Feld lesen (leer = kein Zusatz in Notiz)
-  const lsNrInp = document.getElementById(einsid+'_ls');
-  const lsNr = lsNrInp ? lsNrInp.value.trim() : '';
-  const menge = parseFloat(inp.value);
-  const zielLo = loSel ? loSel.value : 'Garage';
-  if (isNaN(menge) || menge <= 0) { toast('⚠️ Bitte Menge eingeben'); return; }
+  const inp=document.getElementById(einsid), loSel=document.getElementById(einsid+'_lo'), lsNrInp=document.getElementById(einsid+'_ls');
+  const menge=parseFloat(inp.value), zielLo=loSel?loSel.value:'Garage', lsNr=lsNrInp?lsNrInp.value.trim():'';
+  if(isNaN(menge)||menge<=0){toast('⚠️ Bitte Menge eingeben');return;}
   sync('syncing');
   try {
-    await eintragEingang(pid, menge, zielLo, lsNr);
-    inp.value = '';
-    if (lsNrInp) lsNrInp.value = '';
+    await eintragEingang(pid,menge,zielLo,lsNr);
+    inp.value=''; if(lsNrInp) lsNrInp.value='';
     sync('ok');
     renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
-    renderProdukte(); renderUebersicht(); renderDifferenz(); renderLog();
-    const pname = produkte.find(p=>p.id===pid)?.name||'';
-    const lsHint = lsNr ? ` · LS: ${lsNr}` : '';
-    toast(`📦 Eingang: +${menge} kg ${pname} → Lager + LS${lsHint}`);
-  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+    renderProdukte();renderUebersicht();renderDifferenz();renderLog();updateUebersichtBadge();
+    const pname=produkte.find(p=>p.id===pid)?.name||'';
+    toast(`📦 Eingang: +${menge} kg ${pname}${lsNr?' · LS: '+lsNr:''}`);
+  }catch(e){sync('error');toast('❌ '+e.message);}
 }
-
 function editiereProdukt(pid) {
-  const p = produkte.find(p => p.id === pid);
-  if (!p) return;
-  document.getElementById('edit-pid').value = pid;
-  document.getElementById('edit-name').value = p.name;
-  document.getElementById('edit-gebinde').value = p.gebinde_kg;
-  document.getElementById('edit-richtwert').value = p.richtwert_kg || '';
+  const p=produkte.find(p=>p.id===pid); if(!p) return;
+  document.getElementById('edit-pid').value=pid; document.getElementById('edit-name').value=p.name;
+  document.getElementById('edit-gebinde').value=p.gebinde_kg; document.getElementById('edit-richtwert').value=p.richtwert_kg||'';
   document.getElementById('modalEdit').classList.add('open');
 }
-
 async function speichereProduktEdit() {
-  const pid = document.getElementById('edit-pid').value;
-  const name = document.getElementById('edit-name').value.trim();
-  const geb = parseInt(document.getElementById('edit-gebinde').value);
-  const rw = parseFloat(document.getElementById('edit-richtwert').value)||null;
-  if (!name || !geb) { toast('⚠️ Name und Gebindegröße erforderlich'); return; }
+  const pid=document.getElementById('edit-pid').value, name=document.getElementById('edit-name').value.trim();
+  const geb=parseInt(document.getElementById('edit-gebinde').value), rw=parseFloat(document.getElementById('edit-richtwert').value)||null;
+  if(!name||!geb){toast('⚠️ Name und Gebindegröße erforderlich');return;}
   sync('syncing');
   try {
-    await api.patch('lager_produkte', `id=eq.${pid}`, {name, gebinde_kg:geb, richtwert_kg:rw});
-    const p = produkte.find(p => p.id === pid);
-    if (p) { p.name = name; p.gebinde_kg = geb; p.richtwert_kg = rw; }
-    produkte.sort((a,b) => a.name.localeCompare(b.name));
-    sync('ok');
+    await api.patch('lager_produkte',`id=eq.${pid}`,{name,gebinde_kg:geb,richtwert_kg:rw});
+    const p=produkte.find(p=>p.id===pid); if(p){p.name=name;p.gebinde_kg=geb;p.richtwert_kg=rw;}
+    produkte.sort((a,b)=>a.name.localeCompare(b.name)); sync('ok');
     document.getElementById('modalEdit').classList.remove('open');
-    renderProdukte(); renderVerwaltung(); renderUebersicht();
-    toast('✅ Produkt aktualisiert: ' + name);
-  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+    renderProdukte();renderVerwaltung();renderUebersicht();updateUebersichtBadge();
+    toast('✅ Produkt aktualisiert: '+name);
+  }catch(e){sync('error');toast('❌ '+e.message);}
 }
-
 async function loescheProdukt(pid, name) {
-  if (!confirm(`Produkt "${name}" wirklich löschen? Alle Bestände und Buchungen werden ebenfalls gelöscht!`)) return;
+  if(!confirm(`Produkt "${name}" wirklich löschen?`)) return;
   sync('syncing');
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/lager_produkte?id=eq.${pid}`, {method:'DELETE', headers:api.h()});
-    produkte = produkte.filter(p => p.id !== pid);
-    bestaende = bestaende.filter(b => b.produkt_id !== pid);
-    buchungen = buchungen.filter(b => b.produkt_id !== pid);
-    lsAustraege = lsAustraege.filter(b => b.produkt_id !== pid);
-    lsBestaende = lsBestaende.filter(b => b.produkt_id !== pid);
-    sync('ok');
-    renderProdukte(); renderVerwaltung(); renderUebersicht(); renderLS(); renderDifferenz();
-    toast('🗑️ Produkt gelöscht: ' + name);
-  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+    await api.delete('lager_produkte',`id=eq.${pid}`);
+    produkte=produkte.filter(p=>p.id!==pid); bestaende=bestaende.filter(b=>b.produkt_id!==pid);
+    buchungen=buchungen.filter(b=>b.produkt_id!==pid); lsAustraege=lsAustraege.filter(b=>b.produkt_id!==pid); lsBestaende=lsBestaende.filter(b=>b.produkt_id!==pid);
+    sync('ok'); renderProdukte();renderVerwaltung();renderUebersicht();renderLS();renderDifferenz();updateUebersichtBadge();
+    toast('🗑️ Produkt gelöscht: '+name);
+  }catch(e){sync('error');toast('❌ '+e.message);}
 }
-
 async function speichereRichtwert(pid, sid) {
-  // Richtwert pro einzelner Gebindegröße (pid = Produkt-ID)
-  const inp = document.getElementById('rw_' + sid);
-  const val = parseFloat(inp.value) || null;
+  const val=parseFloat(document.getElementById('rw_'+sid)?.value)||null;
   sync('syncing');
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/lager_produkte?id=eq.${pid}`, {
-      method: 'PATCH',
-      headers: { ...api.h(), Prefer: 'return=minimal' },
-      body: JSON.stringify({ richtwert_kg: val })
-    });
-    const p = produkte.find(p => p.id === pid);
-    if (p) p.richtwert_kg = val;
-    sync('ok');
-    renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
-    renderUebersicht();
-    const pname = p ? p.name + ' ' + p.gebinde_kg + 'kg' : '';
-    toast(`✅ Richtwert ${pname}: ${val ? val + ' kg' : 'entfernt'}`);
-  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+    await api.patch('lager_produkte',`id=eq.${pid}`,{richtwert_kg:val});
+    const p=produkte.find(p=>p.id===pid); if(p) p.richtwert_kg=val;
+    sync('ok'); renderVerwaltung(document.getElementById('verwaltungSuche')?.value||''); renderUebersicht(); updateUebersichtBadge();
+    toast(`✅ Richtwert: ${val?val+' kg':'entfernt'}`);
+  }catch(e){sync('error');toast('❌ '+e.message);}
 }
-
 function bestaetigeSet(pid, lo, vsid) {
-  const inp = document.getElementById('ist_' + vsid);
-  const val = parseFloat(inp.value);
-  if (isNaN(val) || val < 0) { toast('⚠️ Bitte gültigen kg-Wert eingeben'); return; }
-  const pname = produkte.find(p=>p.id===pid)?.name||'';
-  if (!confirm(`Lagerbestand wirklich überschreiben?\n\n${pname} · ${lo}\nNeuer Wert: ${val} kg\n\nDieser Wert ersetzt den aktuellen Bestand und setzt den LS-Bestand neu.`)) return;
-  setzeIstBestand(pid, lo, vsid);
+  const val=parseFloat(document.getElementById('ist_'+vsid)?.value);
+  if(isNaN(val)||val<0){toast('⚠️ Bitte gültigen kg-Wert eingeben');return;}
+  const pname=produkte.find(p=>p.id===pid)?.name||'';
+  if(!confirm(`Lagerbestand wirklich überschreiben?\n\n${pname} · ${lo}\nNeuer Wert: ${val} kg\n\nSetzt Lager UND LS-Bestand neu.`)) return;
+  setzeIstBestand(pid,lo,vsid);
 }
-
 async function setzeIstBestand(pid, lo, vsid) {
-  // Inventur: setzt Außendienst-Lagerbestand UND LS-Bestand auf denselben Wert
-  const inp = document.getElementById('ist_' + vsid);
-  const val = parseFloat(inp.value);
-  if (isNaN(val) || val < 0) { toast('⚠️ Bitte gültigen kg-Wert eingeben'); return; }
+  const val=parseFloat(document.getElementById('ist_'+vsid)?.value);
+  if(isNaN(val)||val<0) return;
   sync('syncing');
   try {
-    const alt = getMenge(pid, lo);
-    const delta = val - alt;
-    // Außendienst Lagerbestand setzen
-    await api.upsert('lager_bestand', { produkt_id:pid, lagerort:lo, menge_kg:val, aktualisiert_am:new Date().toISOString() });
-    if (delta !== 0) {
-      await api.post('lager_buchungen', { produkt_id:pid, lagerort:lo, menge_kg:delta, notiz:'Inventur/Korrektur', kuerzel:meinKuerzel||null });
-      buchungen.unshift({ produkt_id:pid, lagerort:lo, menge_kg:delta, notiz:'Inventur/Korrektur', kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
+    const alt=getMenge(pid,lo), delta=val-alt;
+    await api.upsert('lager_bestand',{produkt_id:pid,lagerort:lo,menge_kg:val,aktualisiert_am:new Date().toISOString()});
+    if(delta!==0){
+      const bres=await api.post('lager_buchungen',{produkt_id:pid,lagerort:lo,menge_kg:delta,notiz:'Inventur/Korrektur',kuerzel:meinKuerzel||null});
+      buchungen.unshift(bres[0]);
     }
-    const bidx = bestaende.findIndex(b => b.produkt_id===pid && b.lagerort===lo);
-    if (bidx>=0) bestaende[bidx].menge_kg = val;
-    else bestaende.push({ produkt_id:pid, lagerort:lo, menge_kg:val });
-
-    // LS-Bestand: Gesamtbestand über ALLE Gebindegrößen + Lagerorte dieses Produktnamens
-    // Der LS-Bestand kennt keinen Lagerort — er ist der Gesamtbestand laut Innendienst
-    const pname = produkte.find(p=>p.id===pid)?.name||'';
-    const alleProdsDesNamens = prodsFor(pname);
-    for (const prod of alleProdsDesNamens) {
-      // Für jede Gebindegröße: Gesamtbestand AD (Garage + Werkstatt)
-      const adGesamt = ['Garage','Werkstatt'].reduce((s,l) => {
-        // Wenn das die aktuelle Gebindegröße + Lagerort ist: neuen Wert nutzen
-        if (prod.id === pid && l === lo) return s + val;
-        return s + getMenge(prod.id, l);
-      }, 0);
-      await lsBestandSetzen(prod.id, adGesamt, 'Inventur/Reset');
+    const bidx=bestaende.findIndex(b=>b.produkt_id===pid&&b.lagerort===lo);
+    if(bidx>=0) bestaende[bidx].menge_kg=val; else bestaende.push({produkt_id:pid,lagerort:lo,menge_kg:val});
+    const pname=produkte.find(p=>p.id===pid)?.name||'';
+    for(const prod of prodsFor(pname)){
+      const adGesamt=['Garage','Werkstatt'].reduce((s,l)=>s+(prod.id===pid&&l===lo?val:getMenge(prod.id,l)),0);
+      await lsBestandSetzen(prod.id,adGesamt);
     }
-
-    inp.value = '';
-    sync('ok');
-    renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
-    renderProdukte(); renderUebersicht(); renderLog(); renderDifferenz();
-    toast(`✅ Inventur ${pname}: ${val} kg — beide Seiten gleichgesetzt`);
-  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+    document.getElementById('ist_'+vsid).value='';
+    sync('ok'); renderVerwaltung(document.getElementById('verwaltungSuche')?.value||''); renderProdukte();renderUebersicht();renderLog();renderDifferenz();updateUebersichtBadge();
+    toast(`✅ Inventur ${pname}: ${val} kg`);
+  }catch(e){sync('error');toast('❌ '+e.message);}
 }
-
-async function lsBestandSetzen(pid, val, notiz='') {
-  // LS-Bestand direkt setzen (für Inventur und Eingang)
-  const check = await fetch(
-    `${SUPABASE_URL}/rest/v1/lager_ls_bestand?produkt_id=eq.${pid}`,
-    { headers: api.h() }
-  );
-  const existing = await check.json();
-  if (existing && existing.length > 0) {
-    await api.patch('lager_ls_bestand', `produkt_id=eq.${pid}`, { menge_kg: val, aktualisiert_am: new Date().toISOString() });
-  } else {
-    await fetch(`${SUPABASE_URL}/rest/v1/lager_ls_bestand`, {
-      method:'POST', headers:{...api.h(), Prefer:'return=minimal'},
-      body: JSON.stringify({ produkt_id: pid, menge_kg: val })
-    });
-  }
-  const idx = lsBestaende.findIndex(b => b.produkt_id === pid);
-  if (idx >= 0) lsBestaende[idx].menge_kg = val;
-  else lsBestaende.push({ produkt_id: pid, menge_kg: val });
+async function lsBestandSetzen(pid, val) {
+  const check=await fetch(`${SUPABASE_URL}/rest/v1/lager_ls_bestand?produkt_id=eq.${pid}`,{headers:api.h()});
+  const existing=await check.json();
+  if(existing&&existing.length>0){ await api.patch('lager_ls_bestand',`produkt_id=eq.${pid}`,{menge_kg:val,aktualisiert_am:new Date().toISOString()}); }
+  else { await fetch(`${SUPABASE_URL}/rest/v1/lager_ls_bestand`,{method:'POST',headers:{...api.h(),Prefer:'return=minimal'},body:JSON.stringify({produkt_id:pid,menge_kg:val})}); }
+  const idx=lsBestaende.findIndex(b=>b.produkt_id===pid);
+  if(idx>=0) lsBestaende[idx].menge_kg=val; else lsBestaende.push({produkt_id:pid,menge_kg:val});
 }
-
 async function eintragEingang(pid, menge, zielLo='Garage', lsNr='') {
-  // Eingang: addiert kg zu BEIDEN Seiten (Außendienst gewählter Lagerort + LS)
-  // lsNr: optionale Lieferschein-Nummer, wird in der Notiz gespeichert
-  const notizEingang = lsNr ? `Eingang/Anlieferung · LS: ${lsNr}` : 'Eingang/Anlieferung';
-  const neuerAD = getMenge(pid, zielLo) + menge;
-  await api.upsert('lager_bestand', { produkt_id:pid, lagerort:zielLo, menge_kg:neuerAD, aktualisiert_am:new Date().toISOString() });
-  await api.post('lager_buchungen', { produkt_id:pid, lagerort:zielLo, menge_kg:menge, notiz:notizEingang, kuerzel:meinKuerzel||null });
-  buchungen.unshift({ produkt_id:pid, lagerort:zielLo, menge_kg:menge, notiz:notizEingang, kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
-  const bidx = bestaende.findIndex(b => b.produkt_id===pid && b.lagerort===zielLo);
-  if (bidx>=0) bestaende[bidx].menge_kg = neuerAD;
-  else bestaende.push({ produkt_id:pid, lagerort:zielLo, menge_kg:neuerAD });
-  // LS-Bestand für ALLE Gebindegrößen des Produktnamens erhöhen
-  // Menge proportional zu jeder Gebindegröße addieren — oder einfach auf die
-  // gewählte Gebindegröße (pid) addieren, Rest bleibt
-  const pnameEin = produkte.find(p=>p.id===pid)?.name||'';
-  const alleProdsEin = prodsFor(pnameEin);
-  for (const prod of alleProdsEin) {
-    const lsAlt = getLsBestand(prod.id) || 0;
-    // Nur für die gewählte Gebindegröße addieren
-    const zusatz = prod.id === pid ? menge : 0;
-    await lsBestandSetzen(prod.id, lsAlt + zusatz, 'Eingang/Anlieferung');
+  const notiz=lsNr?`Eingang/Anlieferung · LS: ${lsNr}`:'Eingang/Anlieferung';
+  const neuerAD=getMenge(pid,zielLo)+menge;
+  await api.upsert('lager_bestand',{produkt_id:pid,lagerort:zielLo,menge_kg:neuerAD,aktualisiert_am:new Date().toISOString()});
+  const bres=await api.post('lager_buchungen',{produkt_id:pid,lagerort:zielLo,menge_kg:menge,notiz,kuerzel:meinKuerzel||null});
+  buchungen.unshift(bres[0]);
+  const bidx=bestaende.findIndex(b=>b.produkt_id===pid&&b.lagerort===zielLo);
+  if(bidx>=0) bestaende[bidx].menge_kg=neuerAD; else bestaende.push({produkt_id:pid,lagerort:zielLo,menge_kg:neuerAD});
+  const pnameEin=produkte.find(p=>p.id===pid)?.name||'';
+  for(const prod of prodsFor(pnameEin)){
+    const lsAlt=getLsBestand(prod.id)||0;
+    await lsBestandSetzen(prod.id,lsAlt+(prod.id===pid?menge:0));
   }
-  // lager_eingang Tabelle wird nicht mehr separat geloggt — lager_buchungen reicht
 }
 
 // ══════════════════════════════════════════════════════════
-// AUTH – Login / Session
+// AUTH
 // ══════════════════════════════════════════════════════════
 let authToken = null;
-
-function showLogin() {
-  const ls = document.getElementById('loginScreen'); ls.style.display = 'flex';
-}
-function hideLogin() {
-  document.getElementById('loginScreen').style.display = 'none';
-}
-
+function showLogin() { document.getElementById('loginScreen').style.display='flex'; }
+function hideLogin() { document.getElementById('loginScreen').style.display='none'; }
 async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pw = document.getElementById('loginPassword').value;
-  const errEl = document.getElementById('loginError');
-  errEl.style.display = 'none';
-  if (!email || !pw) { errEl.textContent = 'Bitte E-Mail und Passwort eingeben.'; errEl.style.display = 'block'; return; }
+  const email=document.getElementById('loginEmail').value.trim(), pw=document.getElementById('loginPassword').value;
+  const errEl=document.getElementById('loginError'); errEl.style.display='none';
+  if(!email||!pw){errEl.textContent='Bitte E-Mail und Passwort eingeben.';errEl.style.display='block';return;}
   try {
-    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pw })
-    });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error_description || data.msg || 'Login fehlgeschlagen');
-    authToken = data.access_token;
-    // Token + Refresh Token speichern
-    localStorage.setItem('lager_token', authToken);
-    localStorage.setItem('lager_refresh', data.refresh_token);
-    localStorage.setItem('lager_token_exp', Date.now() + (data.expires_in * 1000));
-    hideLogin();
-    await init();
-    renderVerwaltung();
-  } catch(e) {
-    errEl.textContent = '❌ ' + e.message;
-    errEl.style.display = 'block';
-  }
+    const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error_description||data.msg||'Login fehlgeschlagen');
+    authToken=data.access_token;
+    localStorage.setItem('lager_token',authToken); localStorage.setItem('lager_refresh',data.refresh_token); localStorage.setItem('lager_token_exp',Date.now()+(data.expires_in*1000));
+    hideLogin(); await init(); renderVerwaltung();
+  }catch(e){errEl.textContent='❌ '+e.message;errEl.style.display='block';}
 }
-
 async function checkSession() {
-  const token = localStorage.getItem('lager_token');
-  const refresh = localStorage.getItem('lager_refresh');
-  const exp = parseInt(localStorage.getItem('lager_token_exp') || '0');
-
-  if (token && Date.now() < exp) {
-    // Token noch gültig
-    authToken = token;
-    hideLogin();
-    await init();
-    renderVerwaltung();
-  } else if (refresh) {
-    // Token abgelaufen aber Refresh Token vorhanden -> automatisch erneuern
+  const token=localStorage.getItem('lager_token'), refresh=localStorage.getItem('lager_refresh'), exp=parseInt(localStorage.getItem('lager_token_exp')||'0');
+  if(token&&Date.now()<exp){authToken=token;hideLogin();await init();renderVerwaltung();}
+  else if(refresh){
     try {
-      const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
-        method: 'POST',
-        headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refresh })
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error('Refresh fehlgeschlagen');
-      authToken = data.access_token;
-      localStorage.setItem('lager_token', authToken);
-      localStorage.setItem('lager_refresh', data.refresh_token);
-      localStorage.setItem('lager_token_exp', Date.now() + (data.expires_in * 1000));
-      hideLogin();
-      await init();
-      renderVerwaltung();
-    } catch(e) {
-      // Refresh fehlgeschlagen -> neu einloggen
-      localStorage.removeItem('lager_token');
-      localStorage.removeItem('lager_refresh');
-      localStorage.removeItem('lager_token_exp');
-      showLogin();
-    }
-  } else {
-    showLogin();
-  }
+      const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh})});
+      const data=await r.json(); if(!r.ok) throw new Error();
+      authToken=data.access_token; localStorage.setItem('lager_token',authToken); localStorage.setItem('lager_refresh',data.refresh_token); localStorage.setItem('lager_token_exp',Date.now()+(data.expires_in*1000));
+      hideLogin(); await init(); renderVerwaltung();
+    }catch(e){localStorage.removeItem('lager_token');localStorage.removeItem('lager_refresh');localStorage.removeItem('lager_token_exp');showLogin();}
+  } else { showLogin(); }
 }
-
-function doLogout() {
-  authToken = null;
-  localStorage.removeItem('lager_token');
-  localStorage.removeItem('lager_refresh');
-  localStorage.removeItem('lager_token_exp');
-  showLogin();
-}
-
+function doLogout() { authToken=null; localStorage.removeItem('lager_token'); localStorage.removeItem('lager_refresh'); localStorage.removeItem('lager_token_exp'); showLogin(); }
 
 checkSession();
 
 // ══════════════════════════════════════════════════════════
 // LS AUSTRAG
 // ══════════════════════════════════════════════════════════
-
 function renderLS(filterQ='') {
-  const activeId = document.activeElement?.id;
-  const el = document.getElementById('lsContent');
-  if (!el) return;
-
-  const names = uniqueNames().filter(name => {
-    if (filterQ && !norm(name).includes(norm(filterQ))) return false;
-    return getLsBestandName(name) !== null; // nur Produkte mit Inventur
-  });
-
-  // Scroll-Position und offene Karten merken
-  const scrollEl = document.querySelector('.scroll-area');
-  const scrollTop = scrollEl ? scrollEl.scrollTop : 0;
-  const offene = [...document.querySelectorAll('.ls-pc.open')].map(c => c.id);
-
-  const hatInventur = uniqueNames().some(n => getLsBestandName(n) !== null);
-
-  el.innerHTML = `
-    <div class="search-wrap" style="margin-top:12px;">
-      <span class="search-icon">🔍</span>
-      <input type="search" class="search-input" id="lsSuche" value="${filterQ}"
-        oninput="renderLS(this.value)" placeholder="Produkt suchen… z.B. BZ 300"
-        data-focus="1">
-    </div>
-
-    ${!hatInventur ? `<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px;color:#b45309;">
-      ⚠️ Noch keine Inventur. Bitte zuerst in <strong>Verwaltung → SET</strong> Bestände erfassen.
-    </div>` : ''}
-
-    ${names.map(name => {
-      const prods = prodsFor(name);
-      const lsKgGes = getLsBestandName(name) ?? 0;
-      const isLow = lsKgGes <= 0;
-      const barCls = isLow ? 'background:#b91c1c' : 'background:#f59e0b';
-      const cardId = 'lspc_' + norm(name);
-
-      const chips = prods.map(p => {
-        const lsBst = getLsBestand(p.id) ?? 0;
-        const kan = p.gebinde_kg ? (lsBst / p.gebinde_kg).toFixed(1) : '–';
-        const low = lsBst <= 0;
-        return `<span class="lchip" style="background:${low?'#fef2f2':'#fff7ed'};border-color:${low?'#fca5a5':'#fcd34d'};color:${low?'#b91c1c':'#b45309'};">
-          <span class="lchip-dot"></span>📝 <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> ${lsBst} kg <span style="opacity:0.6;font-size:10px;">(${kan} Geb.)</span>
-        </span>`;
-      }).join('');
-
-      // Detail: pro Gebindegröße eine Eingabezeile
-      const rows = prods.map(p => {
-        const lsBst = getLsBestand(p.id) ?? 0;
-        const kan = p.gebinde_kg ? (lsBst / p.gebinde_kg).toFixed(1) : '–';
-        const sid = ('ls_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
-        return `<div style="padding:14px;border-bottom:1px solid #e0f2fe;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-            <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;color:#475569;">${p.gebinde_kg} KG GEBINDE</span>
-            <span style="font-family:'DM Mono',monospace;font-size:13px;color:${lsBst<=0?'#b91c1c':'#b45309'};font-weight:500;">LS-Bestand: ${lsBst} kg (${kan} Geb.)</span>
-          </div>
+  const activeId=document.activeElement?.id, el=document.getElementById('lsContent');
+  if(!el) return;
+  const names=uniqueNames().filter(name=>{if(filterQ&&!norm(name).includes(norm(filterQ)))return false;return getLsBestandName(name)!==null;});
+  const scrollEl=document.querySelector('.scroll-area'), scrollTop=scrollEl?scrollEl.scrollTop:0;
+  const offene=[...document.querySelectorAll('.ls-pc.open')].map(c=>c.id);
+  const hatInventur=uniqueNames().some(n=>getLsBestandName(n)!==null);
+  el.innerHTML=`
+    <div class="search-wrap" style="margin-top:12px;"><span class="search-icon">🔍</span><input type="search" class="search-input" id="lsSuche" value="${filterQ}" oninput="renderLS(this.value)" placeholder="Produkt suchen…" data-focus="1"></div>
+    ${!hatInventur?`<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px;color:#b45309;">⚠️ Noch keine Inventur. Bitte zuerst in <strong>Verwaltung → SET</strong> Bestände erfassen.</div>`:''}
+    ${names.map(name=>{
+      const prods=prodsFor(name), lsKgGes=getLsBestandName(name)??0, isLow=lsKgGes<=0;
+      const cardId='lspc_'+norm(name);
+      const chips=prods.map(p=>{const lsBst=getLsBestand(p.id)??0,kan=p.gebinde_kg?(lsBst/p.gebinde_kg).toFixed(1):'–',low=lsBst<=0;return`<span class="lchip" style="background:${low?'#fef2f2':'#fff7ed'};border-color:${low?'#fca5a5':'#fcd34d'};color:${low?'#b91c1c':'#b45309'};"><span class="lchip-dot"></span>📝 <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> ${lsBst} kg <span style="opacity:0.6;font-size:10px;">(${kan} Geb.)</span></span>`;}).join('');
+      const rows=prods.map(p=>{
+        const lsBst=getLsBestand(p.id)??0,kan=p.gebinde_kg?(lsBst/p.gebinde_kg).toFixed(1):'–';
+        const sid=('ls_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
+        return`<div style="padding:14px;border-bottom:1px solid #e0f2fe;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;color:#475569;">${p.gebinde_kg} KG GEBINDE</span><span style="font-family:'DM Mono',monospace;font-size:13px;color:${lsBst<=0?'#b91c1c':'#b45309'};font-weight:500;">LS-Bestand: ${lsBst} kg (${kan} Geb.)</span></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-            <div class="f" style="margin:0;">
-              <label>Menge (kg) — <span id="${sid}_sign_label" style="color:#b91c1c;">Entnahme (−)</span></label>
-              <div style="display:flex;gap:6px;align-items:center;">
-                <button id="${sid}_sign" onclick="lsToggleSign('${sid}')"
-                  style="width:42px;height:42px;border-radius:8px;border:1px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;cursor:pointer;flex-shrink:0;">−</button>
-                <input type="number" id="${sid}_menge" placeholder="z.B. ${p.gebinde_kg}" step="0.5"
-                  style="flex:1;min-width:0;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;"
-                  onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('${sid}_datum')?.focus();}">
-              </div>
-            </div>
-            <div class="f" style="margin:0;">
-              <label>LS Datum (optional)</label>
-              <input type="date" id="${sid}_datum"
-                style="width:100%;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('${sid}_kunde')?.focus();}">
-            </div>
+            <div class="f" style="margin:0;"><label>Menge (kg) — <span id="${sid}_sign_label" style="color:#b91c1c;">Entnahme (−)</span></label><div style="display:flex;gap:6px;align-items:center;"><button id="${sid}_sign" onclick="lsToggleSign('${sid}')" style="width:42px;height:42px;border-radius:8px;border:1px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;cursor:pointer;flex-shrink:0;">−</button><input type="number" id="${sid}_menge" placeholder="z.B. ${p.gebinde_kg}" step="0.5" style="flex:1;min-width:0;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('${sid}_datum')?.focus();}"></div></div>
+            <div class="f" style="margin:0;"><label>LS Datum (optional)</label><input type="date" id="${sid}_datum" style="width:100%;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('${sid}_kunde')?.focus();}"></div>
           </div>
-          <div class="f" style="margin-bottom:8px;">
-            <label>Kunde</label>
-            <div style="position:relative;">
-              <input type="text" id="${sid}_kunde" placeholder="Kunde eingeben…"
-                autocomplete="off"
-                oninput="lsKundeSuche(this.value,'${sid}_kundelist')"
-                style="width:100%;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();lsAustragSpeichernDirekt('${p.id}','${sid}',${p.gebinde_kg});}">
-              <div id="${sid}_kundelist" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #7dd3fc;border-top:none;border-radius:0 0 8px 8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:160px;overflow-y:auto;"></div>
-            </div>
-          </div>
-          <button onclick="lsAustragSpeichernDirekt('${p.id}','${sid}',${p.gebinde_kg})"
-            style="width:100%;padding:10px;border-radius:8px;background:var(--surface2);color:#fff;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.5px;cursor:pointer;">
-            📝 LS Austrag speichern
-          </button>
+          <div class="f" style="margin-bottom:8px;"><label>Kunde</label><div style="position:relative;"><input type="text" id="${sid}_kunde" placeholder="Kunde eingeben…" autocomplete="off" oninput="lsKundeSuche(this.value,'${sid}_kundelist')" style="width:100%;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();lsAustragSpeichernDirekt('${p.id}','${sid}',${p.gebinde_kg});}"><div id="${sid}_kundelist" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #7dd3fc;border-top:none;border-radius:0 0 8px 8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:160px;overflow-y:auto;"></div></div></div>
+          <button onclick="lsAustragSpeichernDirekt('${p.id}','${sid}',${p.gebinde_kg})" style="width:100%;padding:10px;border-radius:8px;background:var(--surface2);color:#fff;border:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.5px;cursor:pointer;">📝 LS Austrag speichern</button>
         </div>`;
       }).join('');
-
-      return `<div class="pc ls-pc ${isLow?'pc-low':''}" id="${cardId}" style="margin-bottom:10px;">
-        <div class="pc-bar" style="${barCls};"></div>
+      return`<div class="pc ls-pc ${isLow?'pc-low':''}" id="${cardId}" style="margin-bottom:10px;">
+        <div class="pc-bar" style="background:${isLow?'#b91c1c':'#f59e0b'};"></div>
         <div class="pc-header" onclick="this.parentElement.classList.toggle('open')">
           <div class="pc-name">${name}</div>
-          <div>
-            <div class="pc-total-kg" style="color:${isLow?'#b91c1c':'#b45309'}">${lsKgGes} kg</div>
-            <div class="pc-total-rw">📝 LS-Bestand</div>
-          </div>
+          <div><div class="pc-total-kg" style="color:${isLow?'#b91c1c':'#b45309'}">${lsKgGes} kg</div><div class="pc-total-rw">📝 LS-Bestand</div></div>
           <span class="chev">▼</span>
         </div>
-        <div class="chip-row">${chips || '<span style="font-size:12px;color:#94a3b8">Kein LS-Bestand</span>'}</div>
+        <div class="chip-row">${chips||'<span style="font-size:12px;color:#94a3b8">Kein LS-Bestand</span>'}</div>
         <div class="pc-detail">${rows}</div>
       </div>`;
     }).join('')}
-
     <div class="sl" style="margin-top:14px;">Letzte Einträge</div>
-    ${lsAustraege.length ? `
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      ${lsAustraege.slice(0,20).map(ls => {
-        const p = produkte.find(p => p.id === ls.produkt_id);
-        const eingetragen = fmtDatum(ls.erstellt_am);
-        const lsDat = ls.ls_datum ? fmtDatumKurz(ls.ls_datum) : null;
-        return `<div style="background:#fff;border:1px solid #bae6fd;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);display:flex;align-items:center;gap:12px;">
-          <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:#b91c1c;white-space:nowrap;">
-            −${ls.menge_kg} kg
-          </div>
-          <div style="flex:1;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#0f172a;">${p?p.name:'–'}</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:#0f172a;margin-top:2px;">
-              ${ls.kunde}${ls.kuerzel?' <span style="font-size:11px;font-weight:400;color:#64748b;">· '+ls.kuerzel+'</span>':''}
-            </div>
-            <div style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;margin-top:1px;">
-              ${eingetragen}${lsDat?' · LS vom '+lsDat:''}
-            </div>
-          </div>
-          <span style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:#b91c1c;white-space:nowrap;">LS</span>
-        </div>`;
-      }).join('')}
-    </div>` : '<div class="empty">Noch keine LS Austraege</div>'}
-  `;
-
-  // Offene Karten, Scroll und Suchfeld-Fokus wiederherstellen
-  setTimeout(() => {
-    offene.forEach(id => { const c = document.getElementById(id); if(c) c.classList.add('open'); });
-    if (scrollEl) scrollEl.scrollTop = scrollTop;
-    if (activeId) {
-      const el2 = document.getElementById(activeId);
-      if (el2 && (el2.tagName === 'INPUT' || el2.tagName === 'SELECT')) {
-        el2.focus();
-        if (el2.type === 'search' || el2.type === 'text') el2.setSelectionRange(el2.value.length, el2.value.length);
-      }
-    }
-  }, 0);
+    ${lsAustraege.length?`<div style="display:flex;flex-direction:column;gap:8px;">${lsAustraege.slice(0,20).map(ls=>{const p=produkte.find(p=>p.id===ls.produkt_id),lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;return`<div style="background:#fff;border:1px solid #bae6fd;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);display:flex;align-items:center;gap:12px;"><div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:#b91c1c;white-space:nowrap;">−${ls.menge_kg} kg</div><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#0f172a;">${p?p.name:'–'}</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:#0f172a;margin-top:2px;">${ls.kunde}${ls.kuerzel?` <span style="font-size:11px;font-weight:400;color:#64748b;">· ${ls.kuerzel}</span>`:''}</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;margin-top:1px;">${fmtDatum(ls.erstellt_am)}${lsDat?' · LS vom '+lsDat:''}</div></div><span style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:#b91c1c;white-space:nowrap;">LS</span></div>`;}).join('')}</div>`:'<div class="empty">Noch keine LS Austraege</div>'}`;
+  setTimeout(()=>{offene.forEach(id=>{const c=document.getElementById(id);if(c)c.classList.add('open');});if(scrollEl)scrollEl.scrollTop=scrollTop;if(activeId){const el2=document.getElementById(activeId);if(el2&&(el2.tagName==='INPUT'||el2.tagName==='SELECT')){el2.focus();if(el2.type==='search'||el2.type==='text')el2.setSelectionRange(el2.value.length,el2.value.length);}}},0);
 }
-
-function lsKundeSuche(q, listId) {
-  const list = document.getElementById(listId);
-  if (!list) return;
-  const matches = kunden.filter(k => k.name.toLowerCase().includes(q.toLowerCase()));
-  list.innerHTML = matches.slice(0,8).map(k =>
-    `<div onclick="document.getElementById('${listId}').previousElementSibling.value='${k.name}';document.getElementById('${listId}').style.display='none';"
-      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #e0f2fe;font-family:'Barlow',sans-serif;font-size:14px;color:#0f172a;"
-      onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background=''">
-      ${k.name}
-    </div>`
-  ).join('');
-  list.style.display = matches.length ? 'block' : 'none';
-}
-
-function lsToggleSign(sid) {
-  const btn = document.getElementById(sid+'_sign');
-  const lbl = document.getElementById(sid+'_sign_label');
-  if (!btn) return;
-  if (btn.textContent === '−') {
-    btn.textContent = '+';
-    btn.style.background = '#f0fdf4';
-    btn.style.borderColor = '#86efac';
-    btn.style.color = '#15803d';
-    if (lbl) { lbl.textContent = 'Eingang (+)'; lbl.style.color = '#15803d'; }
-  } else {
-    btn.textContent = '−';
-    btn.style.background = '#fef2f2';
-    btn.style.borderColor = '#fca5a5';
-    btn.style.color = '#b91c1c';
-    if (lbl) { lbl.textContent = 'Entnahme (−)'; lbl.style.color = '#b91c1c'; }
-  }
-}
-
-async function lsAustragSpeichernDirekt(pid, sid, gebinde) {
-  const mengeInp = document.getElementById(sid+'_menge');
-  const datumInp = document.getElementById(sid+'_datum');
-  const kundeInp = document.getElementById(sid+'_kunde');
-  const signBtn = document.getElementById(sid+'_sign');
-  const menge = parseFloat(mengeInp?.value);
-  const kunde = kundeInp?.value.trim();
-  const lsDatum = datumInp?.value || null;
-  const istEingang = signBtn && signBtn.textContent === '+';
-
-  if (isNaN(menge) || menge <= 0) { toast('⚠️ Bitte Menge eingeben'); mengeInp?.focus(); return; }
-  if (!kunde) { toast('⚠️ Bitte Kunde eingeben'); kundeInp?.focus(); return; }
-
-  const lsAktuell = getLsBestand(pid);
-  if (lsAktuell === null) { toast('⚠️ Erst Inventur in Verwaltung durchführen!'); return; }
-
-  // Entnahme: prüfen ob genug vorhanden
-  if (!istEingang && lsAktuell - menge < 0) {
-    toast(`⛔ Nicht möglich! LS-Bestand: ${lsAktuell} kg, Entnahme: ${menge} kg`);
-    return;
-  }
-
+function lsKundeSuche(q,listId){const list=document.getElementById(listId);if(!list)return;const matches=kunden.filter(k=>k.name.toLowerCase().includes(q.toLowerCase()));list.innerHTML=matches.slice(0,8).map(k=>`<div onclick="document.getElementById('${listId}').previousElementSibling.value='${k.name}';document.getElementById('${listId}').style.display='none';" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #e0f2fe;font-family:'Barlow',sans-serif;font-size:14px;color:#0f172a;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background=''">${k.name}</div>`).join('');list.style.display=matches.length?'block':'none';}
+function lsToggleSign(sid){const btn=document.getElementById(sid+'_sign'),lbl=document.getElementById(sid+'_sign_label');if(!btn)return;if(btn.textContent==='−'){btn.textContent='+';btn.style.background='#f0fdf4';btn.style.borderColor='#86efac';btn.style.color='#15803d';if(lbl){lbl.textContent='Eingang (+)';lbl.style.color='#15803d';}}else{btn.textContent='−';btn.style.background='#fef2f2';btn.style.borderColor='#fca5a5';btn.style.color='#b91c1c';if(lbl){lbl.textContent='Entnahme (−)';lbl.style.color='#b91c1c';}}}
+async function lsAustragSpeichernDirekt(pid,sid,gebinde){
+  const mengeInp=document.getElementById(sid+'_menge'),datumInp=document.getElementById(sid+'_datum'),kundeInp=document.getElementById(sid+'_kunde'),signBtn=document.getElementById(sid+'_sign');
+  const menge=parseFloat(mengeInp?.value),kunde=kundeInp?.value.trim(),lsDatum=datumInp?.value||null,istEingang=signBtn&&signBtn.textContent==='+';
+  if(isNaN(menge)||menge<=0){toast('⚠️ Bitte Menge eingeben');mengeInp?.focus();return;}
+  if(!kunde){toast('⚠️ Bitte Kunde eingeben');kundeInp?.focus();return;}
+  const lsAktuell=getLsBestand(pid);
+  if(lsAktuell===null){toast('⚠️ Erst Inventur in Verwaltung durchführen!');return;}
+  if(!istEingang&&lsAktuell-menge<0){toast(`⛔ LS-Bestand: ${lsAktuell} kg, Entnahme: ${menge} kg`);return;}
   sync('syncing');
   try {
-    // Eingang: Menge addieren, Entnahme: Menge subtrahieren
-    const delta = istEingang ? menge : -menge;
-    const neuerLsBestand = lsAktuell + delta;
-    await lsBestandSetzen(pid, neuerLsBestand);
-    const res = await api.post('lager_ls_austrag', {
-      produkt_id: pid, menge_kg: Math.abs(menge) * (istEingang ? 1 : -1), kunde,
-      kuerzel: meinKuerzel||null, ls_datum: lsDatum,
-      ls_bestand_nach: neuerLsBestand
-    });
+    const delta=istEingang?menge:-menge, neuerLsBestand=lsAktuell+delta;
+    await lsBestandSetzen(pid,neuerLsBestand);
+    const res=await api.post('lager_ls_austrag',{produkt_id:pid,menge_kg:Math.abs(menge)*(istEingang?1:-1),kunde,kuerzel:meinKuerzel||null,ls_datum:lsDatum,ls_bestand_nach:neuerLsBestand});
     lsAustraege.unshift(res[0]);
-    if (!kunden.find(k => k.name.toLowerCase() === kunde.toLowerCase())) {
-      try { const kr = await api.post('lager_kunden', {name:kunde}); kunden.push(kr[0]); kunden.sort((a,b)=>a.name.localeCompare(b.name)); } catch(e) {}
-    }
-    if (mengeInp) mengeInp.value = '';
-    if (datumInp) datumInp.value = '';
-    if (kundeInp) kundeInp.value = '';
-    sync('ok');
-    renderLS(document.getElementById('lsSuche')?.value||'');
-    renderDifferenz();
-    const pname = produkte.find(p=>p.id===pid)?.name||'';
-    toast(`📝 LS: ${istEingang?'+':'−'}${menge} kg ${pname} → ${kunde} (Rest: ${neuerLsBestand} kg)`);
-  } catch(e) { sync('error'); toast('❌ '+e.message); }
-}
-
-async function lsAustragSpeichern() {
-  const pid = document.getElementById('ls-produkt-id').value;
-  const menge = parseFloat(document.getElementById('ls-menge').value);
-  const kunde = document.getElementById('ls-kunde-input').value.trim();
-  const lsDatum = document.getElementById('ls-datum').value || null;
-  if (!pid) { toast('⚠️ Bitte Produkt auswählen'); return; }
-  if (isNaN(menge) || menge <= 0) { toast('⚠️ Bitte Menge eingeben'); return; }
-  if (!kunde) { toast('⚠️ Bitte Kunde eingeben'); return; }
-
-  // Prüfen ob LS-Bestand vorhanden und ausreichend
-  const lsAktuell = getLsBestand(pid);
-  if (lsAktuell === null) {
-    toast('⚠️ Bitte zuerst Inventur in Verwaltung durchführen!');
-    return;
-  }
-  if (lsAktuell - menge < 0) {
-    toast(`⛔ Nicht möglich: LS-Bestand würde negativ! Aktuell: ${lsAktuell} kg, Entnahme: ${menge} kg`);
-    return;
-  }
-
-  sync('syncing');
-  try {
-    const neuerLsBestand = lsAktuell - menge;
-    // LS-Bestand reduzieren
-    await lsBestandSetzen(pid, neuerLsBestand);
-    // Buchung loggen
-    const res = await api.post('lager_ls_austrag', {
-      produkt_id: pid, menge_kg: menge, kunde,
-      kuerzel: meinKuerzel||null, ls_datum: lsDatum,
-      ls_bestand_nach: neuerLsBestand
-    });
-    lsAustraege.unshift(res[0]);
-    // Neuen Kunden anlegen
-    if (!kunden.find(k => k.name.toLowerCase() === kunde.toLowerCase())) {
-      try {
-        const kr = await api.post('lager_kunden', { name: kunde });
-        kunden.push(kr[0]);
-        kunden.sort((a,b) => a.name.localeCompare(b.name));
-      } catch(e) {}
-    }
-    document.getElementById('ls-produkt-id').value = '';
-    document.getElementById('ls-produkt-input').value = '';
-    document.getElementById('ls-menge').value = '';
-    document.getElementById('ls-datum').value = '';
-    document.getElementById('ls-kunde-input').value = '';
-    sync('ok');
-    renderLS();
-    renderDifferenz();
-    const pname = produkte.find(p=>p.id===pid)?.name||'';
-    toast(`📝 LS Austrag: −${menge} kg ${pname} → ${kunde} (LS-Rest: ${neuerLsBestand} kg)`);
-  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+    if(!kunden.find(k=>k.name.toLowerCase()===kunde.toLowerCase())){try{const kr=await api.post('lager_kunden',{name:kunde});kunden.push(kr[0]);kunden.sort((a,b)=>a.name.localeCompare(b.name));}catch(e){}}
+    if(mengeInp)mengeInp.value='';if(datumInp)datumInp.value='';if(kundeInp)kundeInp.value='';
+    sync('ok');renderLS(document.getElementById('lsSuche')?.value||'');renderDifferenz();
+    const pname=produkte.find(p=>p.id===pid)?.name||'';
+    toast(`📝 LS: ${istEingang?'+':'−'}${menge} kg ${pname} → ${kunde}`);
+  }catch(e){sync('error');toast('❌ '+e.message);}
 }
 
 // ══════════════════════════════════════════════════════════
 // DIFFERENZ
 // ══════════════════════════════════════════════════════════
-
-function renderDifferenz(filterQ='', nurMitDiff=false) {
-  const el = document.getElementById('differenzContent');
-  if (!el) return;
-
-  // Alle Produkte mit Inventur (LS-Bestand vorhanden) zeigen
-  const alleNames = uniqueNames().filter(name => {
-    if (filterQ && !norm(name).includes(norm(filterQ))) return false;
-    const lagerKg = gesamtKg(name);
-    const lsKg = getLsBestandName(name);
-    if (lsKg === null && lagerKg === 0) return false; // noch nie erfasst
-    if (nurMitDiff) {
-      const diff = lagerKg - (lsKg || 0);
-      return diff !== 0;
-    }
-    return lagerKg > 0 || lsKg !== null;
+function renderDifferenz(filterQ='',nurMitDiff=false){
+  const el=document.getElementById('differenzContent');if(!el)return;
+  const alleNames=uniqueNames().filter(name=>{
+    if(filterQ&&!norm(name).includes(norm(filterQ)))return false;
+    const lagerKg=gesamtKg(name),lsKg=getLsBestandName(name);
+    if(lsKg===null&&lagerKg===0)return false;
+    if(nurMitDiff){const diff=lagerKg-(lsKg||0);return diff!==0;}
+    return lagerKg>0||lsKg!==null;
   });
-
-  el.innerHTML = `
-    <div class="search-wrap" style="margin-top:12px;">
-      <span class="search-icon">🔍</span>
-      <input type="search" class="search-input" id="differenzSuche" value="${filterQ}"
-        oninput="renderDifferenz(this.value, document.getElementById('diffFilterBtn').dataset.active==='1')"
-        placeholder="Produkt suchen…"
-        data-focus="1">
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <button id="diffFilterBtn" data-active="${nurMitDiff?'1':'0'}"
-        onclick="this.dataset.active=this.dataset.active==='1'?'0':'1'; renderDifferenz(document.getElementById('differenzSuche').value, this.dataset.active==='1')"
-        style="padding:6px 14px;border-radius:20px;border:1px solid ${nurMitDiff?'#fff':'rgba(255,255,255,0.4)'};background:${nurMitDiff?'#fff':'rgba(255,255,255,0.15)'};color:${nurMitDiff?'var(--surface2)':'#fff'};font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">
-        ⚠️ Nur mit Differenz
-      </button>
-    </div>
-    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">
-      ℹ️ <strong>Außendienst</strong> = Lagerbestand aus Produkt-Buchungen · <strong>Innendienst</strong> = Summe LS Austraege · Rot = Differenz vorhanden
-    </div>
-
-    ${alleNames.length ? alleNames.map(name => {
-      const lagerKg = gesamtKg(name);
-      // Echter LS-Bestand aus lager_ls_bestand Tabelle
-      const lsKg = getLsBestandName(name) ?? 0;
-      const differenz = lagerKg - lsKg;
-      const hatDiff = differenz !== 0;
-      const cardBorder = hatDiff ? '2px solid #fca5a5' : '1px solid #bae6fd';
-      const barColor = hatDiff ? '#b91c1c' : '#7dd3fc';
-      const diffColor = differenz > 0 ? '#b45309' : differenz < 0 ? '#b91c1c' : '#15803d';
-      const diffBg = differenz > 0 ? '#fffbeb' : differenz < 0 ? '#fef2f2' : '#f0fdf4';
-      const diffBorder = differenz > 0 ? '#fcd34d' : differenz < 0 ? '#fca5a5' : '#86efac';
-      // Letzte 5 LS-Einträge für dieses Produkt
-      const lsEntries = lsAustraege.filter(ls => {
-        const p = produkte.find(p=>p.id===ls.produkt_id);
-        return p && p.name === name;
-      }).slice(0,5);
-
-      return `<div style="background:#fff;border:${cardBorder};border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.10);margin-bottom:10px;">
-        <div style="height:3px;background:${barColor};"></div>
+  el.innerHTML=`
+    <div class="search-wrap" style="margin-top:12px;"><span class="search-icon">🔍</span><input type="search" class="search-input" id="differenzSuche" value="${filterQ}" oninput="renderDifferenz(this.value,document.getElementById('diffFilterBtn').dataset.active==='1')" placeholder="Produkt suchen…" data-focus="1"></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;"><button id="diffFilterBtn" data-active="${nurMitDiff?'1':'0'}" onclick="this.dataset.active=this.dataset.active==='1'?'0':'1';renderDifferenz(document.getElementById('differenzSuche').value,this.dataset.active==='1')" style="padding:6px 14px;border-radius:20px;border:1px solid ${nurMitDiff?'#fff':'rgba(255,255,255,0.4)'};background:${nurMitDiff?'#fff':'rgba(255,255,255,0.15)'};color:${nurMitDiff?'var(--surface2)':'#fff'};font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">⚠️ Nur mit Differenz</button></div>
+    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">ℹ️ <strong>Außendienst</strong> = Lagerbestand · <strong>Innendienst</strong> = LS-Bestand · Rot = Differenz</div>
+    ${alleNames.length?alleNames.map(name=>{
+      const lagerKg=gesamtKg(name),lsKg=getLsBestandName(name)??0,differenz=lagerKg-lsKg,hatDiff=differenz!==0;
+      const diffColor=differenz>0?'#b45309':differenz<0?'#b91c1c':'#15803d';
+      const diffBg=differenz>0?'#fffbeb':differenz<0?'#fef2f2':'#f0fdf4';
+      const diffBorder=differenz>0?'#fcd34d':differenz<0?'#fca5a5':'#86efac';
+      const lsEntries=lsAustraege.filter(ls=>{const p=produkte.find(p=>p.id===ls.produkt_id);return p&&p.name===name;}).slice(0,5);
+      return`<div style="background:#fff;border:${hatDiff?'2px solid #fca5a5':'1px solid #bae6fd'};border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.10);margin-bottom:10px;">
+        <div style="height:3px;background:${hatDiff?'#b91c1c':'#7dd3fc'};"></div>
         <div style="padding:12px 14px;border-bottom:1px solid #e0f2fe;">
-
-          <!-- Produktname groß -->
           <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:20px;color:#0f172a;margin-bottom:10px;">${name}</div>
-
-          <!-- Differenz prominent -->
           <div style="background:${diffBg};border:2px solid ${diffBorder};border-radius:8px;padding:10px;text-align:center;margin-bottom:8px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${hatDiff?diffColor:'#64748b'};margin-bottom:4px;">
-              Außendienst − Innendienst = Differenz
-            </div>
-            <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:${diffColor};">
-              ${lagerKg} − ${lsKg} = ${differenz>0?'+':''}${differenz} kg
-            </div>
-            <div style="font-size:11px;color:#64748b;margin-top:4px;">
-              ${differenz > 0 ? '⚠️ '+differenz+' kg mehr im Lager als auf LS verbucht — LS fehlt!' : differenz < 0 ? '🔴 '+Math.abs(differenz)+' kg mehr auf LS als im Lager — Fehler!' : '✅ Lager und LS stimmen überein'}
-            </div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${hatDiff?diffColor:'#64748b'};margin-bottom:4px;">Außendienst − Innendienst = Differenz</div>
+            <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:${diffColor};">${lagerKg} − ${lsKg} = ${differenz>0?'+':''}${differenz} kg</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;">${differenz>0?'⚠️ '+differenz+' kg mehr im Lager als auf LS — LS fehlt!':differenz<0?'🔴 '+Math.abs(differenz)+' kg mehr auf LS als im Lager — Fehler!':'✅ Lager und LS stimmen überein'}</div>
           </div>
-
-          <!-- Aufschlüsselung nach Gebindegröße -->
           <div style="display:flex;flex-direction:column;gap:6px;">
-            ${prodsFor(name).map(p => {
-              const adKg = getMenge(p.id,'Garage') + getMenge(p.id,'Werkstatt');
-              const lsP = getLsBestand(p.id) ?? 0;
-              const diffP = adKg - lsP;
-              const diffCol = diffP > 0 ? '#b45309' : diffP < 0 ? '#b91c1c' : '#15803d';
-              const garKg = getMenge(p.id,'Garage');
-              const werKg = getMenge(p.id,'Werkstatt');
-              return `<div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:6px;align-items:center;background:#f8fafc;border:1px solid #e0f2fe;border-radius:8px;padding:8px 10px;">
-                <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px;color:#475569;white-space:nowrap;">${p.gebinde_kg}kg</span>
-                <div style="text-align:center;">
-                  <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--surface2);">${adKg} kg</div>
-                  <div style="font-size:9px;color:#94a3b8;">📦 ${garKg?'G:'+garKg:''}${garKg&&werKg?' / ':''}${werKg?'W:'+werKg:''}</div>
-                </div>
-                <div style="text-align:center;">
-                  <div style="font-family:'DM Mono',monospace;font-size:14px;color:#b91c1c;">${lsP} kg</div>
-                  <div style="font-size:9px;color:#94a3b8;">📝 LS</div>
-                </div>
-                <div style="text-align:right;">
-                  <div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:${diffCol};">${diffP>0?'+':''}${diffP}</div>
-                  <div style="font-size:9px;color:#94a3b8;">Diff</div>
-                </div>
-              </div>`;
-            }).join('')}
+            ${prodsFor(name).map(p=>{const adKg=getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt'),lsP=getLsBestand(p.id)??0,diffP=adKg-lsP,diffCol=diffP>0?'#b45309':diffP<0?'#b91c1c':'#15803d';return`<div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:6px;align-items:center;background:#f8fafc;border:1px solid #e0f2fe;border-radius:8px;padding:8px 10px;"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px;color:#475569;white-space:nowrap;">${p.gebinde_kg}kg</span><div style="text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--surface2);">${adKg} kg</div><div style="font-size:9px;color:#94a3b8;">📦 G:${getMenge(p.id,'Garage')} W:${getMenge(p.id,'Werkstatt')}</div></div><div style="text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:#b91c1c;">${lsP} kg</div><div style="font-size:9px;color:#94a3b8;">📝 LS</div></div><div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:${diffCol};">${diffP>0?'+':''}${diffP}</div><div style="font-size:9px;color:#94a3b8;">Diff</div></div></div>`;}).join('')}
           </div>
         </div>
-
-        ${lsEntries.length ? `
-        <div style="padding:10px 14px;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">LS Einträge</div>
-          ${lsEntries.map(ls => {
-            const eingetragen = fmtDatum(ls.erstellt_am);
-            const lsDat = ls.ls_datum ? fmtDatumKurz(ls.ls_datum) : null;
-            return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;">
-              <span style="font-family:'DM Mono',monospace;font-size:13px;color:#b91c1c;min-width:60px;">−${ls.menge_kg} kg</span>
-              <span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#0f172a;">${ls.kunde}</span>
-              <span style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;text-align:right;">${eingetragen}${lsDat?'<br>LS: '+lsDat:''}${ls.kuerzel?' · '+ls.kuerzel:''}</span>
-            </div>`;
-          }).join('')}
-        </div>` : ''}
+        ${lsEntries.length?`<div style="padding:10px 14px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">LS Einträge</div>${lsEntries.map(ls=>{const lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;"><span style="font-family:'DM Mono',monospace;font-size:13px;color:#b91c1c;min-width:60px;">−${ls.menge_kg} kg</span><span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#0f172a;">${ls.kunde}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;text-align:right;">${fmtDatum(ls.erstellt_am)}${lsDat?'<br>LS: '+lsDat:''}${ls.kuerzel?' · '+ls.kuerzel:''}</span></div>`;}).join('')}</div>`:''}
       </div>`;
-    }).join('') : '<div class="empty">Keine Einträge vorhanden</div>'}
-  `;
-  // Suchfeld-Fokus wiederherstellen
-  if (filterQ !== '') {
-    setTimeout(() => {
-      const sf = document.getElementById('differenzSuche');
-      if (sf) { sf.focus(); sf.setSelectionRange(sf.value.length, sf.value.length); }
-    }, 0);
-  }
+    }).join(''):'<div class="empty">Keine Einträge vorhanden</div>'}`;
+  if(filterQ!==''){setTimeout(()=>{const sf=document.getElementById('differenzSuche');if(sf){sf.focus();sf.setSelectionRange(sf.value.length,sf.value.length);}},0);}
 }
-
 
 // ══════════════════════════════════════════════════════════
 // HILFE
 // ══════════════════════════════════════════════════════════
-function renderHilfe() {
-  const el = document.getElementById('hilfeContent');
-  if (!el) return;
-
-  el.innerHTML = `
+function renderHilfe(){
+  const el=document.getElementById('hilfeContent');if(!el)return;
+  el.innerHTML=`
     <div class="sl" style="margin-top:14px;">Kurzanleitung nach Rolle</div>
-
-    <!-- AUSSENDIENST -->
     <div class="card" style="margin-bottom:12px;border-color:#7dd3fc;">
-      <div style="background:#0369a1;padding:10px 14px;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#fff;">📦 Außendienst — Servicetechniker</div>
-      </div>
+      <div style="background:#0369a1;padding:10px 14px;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#fff;">📦 Außendienst — Servicetechniker</div></div>
       <div class="card-body" style="padding:14px;">
-
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Anmelden</div>
-        <div style="font-size:13px;color:#0f172a;margin-bottom:12px;">App öffnen → E-Mail + Passwort eingeben. Die App merkt sich die Anmeldung dauerhaft.</div>
-
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Produkt suchen</div>
-        <div style="font-size:13px;color:#0f172a;margin-bottom:4px;">Suchleiste im Tab <strong>Produkte</strong> — alle Schreibweisen funktionieren:</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">BZ300, BZ 300, bz-300 → findet dasselbe · Es reicht ein Teil des Namens (z.B. KT)</div>
-
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Bestand ablesen</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
-          Chips zeigen: Gebindegröße (klein) · Menge in kg · Richtwert<br>
-          🔵 Garage · 🟡 Werkstatt · Roter Rand = unter 30% Richtwert → Nachbestellung nötig
-        </div>
-
+        <div style="font-size:13px;color:#0f172a;margin-bottom:12px;">App öffnen → E-Mail + Passwort. Die App merkt sich die Anmeldung dauerhaft.</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Entnahme buchen</div>
-        <div style="font-size:13px;color:#0f172a;margin-bottom:4px;">Kachel antippen → aufklappt:</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:4px;padding-left:12px;">− = 1 Gebinde austragen · + = 1 Gebinde eintragen (Rückgabe/Umlagerung)</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">Manuell: Vorzeichen wählen → Anzahl Gebinde → optional Notiz → OK · Bestand kann nicht unter 0 sinken</div>
-
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Häufige Fragen</div>
-        <div style="font-size:12px;color:#475569;padding-left:12px;">
-          <strong>Kann mich nicht einloggen?</strong> → Büro kontaktieren<br>
-          <strong>Roter Rand?</strong> → Unter 30% Richtwert, Büro informieren<br>
-          <strong>Zu viel ausgetragen?</strong> → Differenz mit + wieder eintragen, Notiz: Korrektur<br>
-          <strong>Verbindungsfehler?</strong> → Internet prüfen, bei Problemen Büro informieren
-        </div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">Produkte → Kachel antippen → − = 1 Gebinde entnehmen · + = Rückgabe · Manuell: Anzahl Gebinde eingeben → OK</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Roter Rand / ⚠️ Badge</div>
+        <div style="font-size:12px;color:#475569;padding-left:12px;">Roter Rand = unter 30% Richtwert · Badge auf Übersicht-Tab = Anzahl Produkte die nachbestellt werden müssen → Büro informieren</div>
       </div>
     </div>
-
-    <!-- VERWALTUNG -->
     <div class="card" style="margin-bottom:12px;border-color:#cbd5e1;">
-      <div style="background:#475569;padding:10px 14px;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#fff;">⚙️ Verwaltung — Büro</div>
-      </div>
+      <div style="background:#475569;padding:10px 14px;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#fff;">⚙️ Verwaltung — Büro</div></div>
       <div class="card-body" style="padding:14px;">
-
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Neues Produkt anlegen</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Nachbestellen-Kommentare (NEU V11)</div>
         <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
-          Verwaltung oben: Name → Gebinde (kg) → Richtwert → Anlegen (Enter springt weiter)<br>
-          <strong>Danach sofort SET machen</strong> damit Außen- und Innendienst einen Startbestand haben!
+          Tab <strong>Übersicht → Nachbestellen</strong>: jedes Produkt hat ein Notizfeld.<br>
+          Text eingeben (z.B. "bestellt 10.06. bei Müller KW25") → Enter oder 🗒️ speichern.<br>
+          <strong>Für alle Nutzer sichtbar</strong> — gespeichert in Supabase, nicht im Browser.<br>
+          Kommentar zeigt Kürzel + Datum automatisch an.<br>
+          <strong>Auto-Reset:</strong> Nach einem Eingang (Anlieferung) gilt die alte Notiz als erledigt — beim nächsten Mal taucht das Produkt mit leerem Feld auf.
         </div>
-
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Inventur / SET</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
-          kg-Wert eingeben → SET drücken<br>
-          Setzt Lager UND LS-Bestand gleichzeitig auf diesen Wert — jede Gebindegröße + Lagerort separat
-        </div>
-
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">SET / Inventur</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">kg-Wert eingeben → SET → setzt Lager UND LS-Bestand gleichzeitig</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Eingang (Anlieferung)</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
-          Menge eingeben → Lagerort wählen (Garage/Werkstatt) → ＋ drücken<br>
-          Addiert Menge zu BEIDEN Seiten: Lager + LS
-        </div>
-
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Richtwert (RW)</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
-          Ab wann ein Produkt als "niedrig" gilt (unter 50%) · Pro Gebindegröße separat einstellbar
-        </div>
-
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Techniker-Kürzel</div>
-        <div style="font-size:12px;color:#475569;padding-left:12px;">
-          Kürzel (z.B. IG) + User-ID aus Supabase → ＋ Hinzufügen<br>
-          User-ID: Supabase → Authentication → Users → UUID kopieren
-        </div>
+        <div style="font-size:12px;color:#475569;padding-left:12px;">Menge + Lagerort → ＋ Einbuchen · Addiert zu Lager UND LS · Setzt Bestellnotiz auf "erledigt"</div>
       </div>
     </div>
-
-    <!-- INNENDIENST -->
     <div class="card" style="margin-bottom:12px;border-color:#fcd34d;">
-      <div style="background:#b45309;padding:10px 14px;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#fff;">📝 Innendienst — LS Austrag</div>
-      </div>
+      <div style="background:#b45309;padding:10px 14px;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#fff;">📝 Innendienst — LS Austrag</div></div>
       <div class="card-body" style="padding:14px;">
-
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#b45309;margin-bottom:6px;">LS Austrag erfassen</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:4px;padding-left:12px;">Tab LS Austrag → Produkt suchen → Kachel aufklappen</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
-          Vorzeichen wählen (− Entnahme / + Eingang) → Menge (kg) → Enter → LS Datum (optional) → Enter → Kunde → Enter = gespeichert<br>
-          Blockierung wenn LS-Bestand nicht ausreicht (Doppelbuchung-Schutz)
-        </div>
-
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">Tab LS Austrag → Produkt → Menge → Datum (optional) → Kunde → Enter = gespeichert</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#b45309;margin-bottom:6px;">Differenz kontrollieren</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
-          ✅ Grün = alles stimmt · ⚠️ Gelb = LS fehlt · 🔴 Rot = Fehler/Doppelbuchung<br>
-          Filter "Nur mit Differenz" zeigt nur Problemfälle
-        </div>
-
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#b45309;margin-bottom:6px;">Typische Szenarien</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">
-          <strong>Techniker entnimmt + LS kommt an:</strong> Entnahme buchen → Differenz = 0 ✅<br>
-          <strong>LS fehlt:</strong> Differenz bleibt positiv ⚠️ → Nachfrage beim Techniker<br>
-          <strong>Anlieferung:</strong> Verwaltung bucht Eingang → beide Seiten steigen, Differenz bleibt sichtbar
-        </div>
-
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#b45309;margin-bottom:6px;">Häufige Fragen</div>
-        <div style="font-size:12px;color:#475569;padding-left:12px;">
-          <strong>App blockiert LS-Eingabe?</strong> → LS-Bestand würde unter 0 sinken, prüfe ob bereits eingetragen<br>
-          <strong>Neues Produkt?</strong> → Büro legt es an und macht Inventur (SET), danach automatisch verfügbar<br>
-          <strong>LS falsch eingetragen?</strong> → Erneut eintragen mit + (Eingang) vor der kg-Zahl und Vermerk "Korrektur" hinter dem Kundennamen
-        </div>
+        <div style="font-size:12px;color:#475569;padding-left:12px;">✅ Grün = stimmt · ⚠️ Gelb = LS fehlt · 🔴 Rot = Fehler · Filter "Nur mit Differenz" zeigt Problemfälle</div>
       </div>
     </div>
-
-    <!-- KONZEPT -->
-    <div class="sl">Das Konzept: Zwei parallele Bestände</div>
-    <div class="card">
-      <div class="card-body">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
-          <div style="background:#f0f9ff;border:1px solid #7dd3fc;border-radius:8px;padding:10px;text-align:center;">
-            <div style="font-size:20px;margin-bottom:4px;">📦</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#0369a1;">Außendienst</div>
-            <div style="font-size:11px;color:#64748b;margin-top:4px;">Techniker bucht Entnahmen → Lagerbestand sinkt</div>
-          </div>
-          <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px;text-align:center;">
-            <div style="font-size:20px;margin-bottom:4px;">📝</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#b45309;">Innendienst</div>
-            <div style="font-size:11px;color:#64748b;margin-top:4px;">Büro trägt Lieferscheine ein → LS-Bestand sinkt</div>
-          </div>
-          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px;text-align:center;">
-            <div style="font-size:20px;margin-bottom:4px;">⚖️</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#15803d;">Differenz = 0</div>
-            <div style="font-size:11px;color:#64748b;margin-top:4px;">Alle LS stimmen mit Lagerentnahmen überein ✅</div>
-          </div>
-        </div>
-        <div style="font-size:12px;color:#64748b;font-family:'Barlow',sans-serif;border-top:1px solid #e0f2fe;padding-top:10px;">
-          <strong>Verwaltung</strong> ist die neutrale Instanz: Inventur (SET) setzt beide Seiten gleich. Eingang (＋) erhöht beide Seiten gleichzeitig.
-        </div>
+    <div class="sl">Das Konzept</div>
+    <div class="card"><div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div style="background:#f0f9ff;border:1px solid #7dd3fc;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">📦</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#0369a1;">Außendienst</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Techniker bucht Entnahmen</div></div>
+        <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">📝</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#b45309;">Innendienst</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Büro trägt Lieferscheine ein</div></div>
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">⚖️</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#15803d;">Diff = 0</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Alles stimmt überein ✅</div></div>
       </div>
-    </div>
-  `;
+      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V11:</strong> Bestellnotizen in Supabase gespeichert → für alle sichtbar · Auto-Reset nach Eingang · Version in Header</div>
+    </div></div>`;
 }
 
-
-// START
 checkSession();
 </script>
 </body>
