@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Lagerchemie V11</title>
+<title>Lagerchemie V14</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -246,7 +246,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <script>
   const SUPABASE_URL = 'https://loekjdetgppmxnwnwxkm.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A';
-  const APP_VERSION = 'V11';
+  const APP_VERSION = 'V14';
   // Prefix für Bestellnotizen in lager_buchungen
   const BESTELL_PREFIX = '🗒️ Bestellnotiz: ';
 </script>
@@ -279,7 +279,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 
 <!-- HEADER -->
 <div class="header">
-  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V11</span></div>
+  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V14</span></div>
   <div class="sync-dot" id="syncDot"></div>
   <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">LOGOUT</button>
 </div>
@@ -338,41 +338,87 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 // ══════════════════════════════════════════════════════════
 // API HELPER
 // ══════════════════════════════════════════════════════════
+// ── Token-Refresh-Lock: verhindert parallele Refresh-Calls ──
+let _refreshPromise = null;
+
+async function refreshTokenIfNeeded() {
+  // Wenn schon ein Refresh läuft, auf denselben warten
+  if (_refreshPromise) return _refreshPromise;
+  _refreshPromise = (async () => {
+    const refresh = localStorage.getItem('lager_refresh');
+    if (!refresh) throw new Error('Kein Refresh-Token — bitte neu anmelden.');
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refresh })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error('Session abgelaufen — bitte neu anmelden.');
+    authToken = data.access_token;
+    localStorage.setItem('lager_token', authToken);
+    localStorage.setItem('lager_refresh', data.refresh_token);
+    localStorage.setItem('lager_token_exp', Date.now() + (data.expires_in * 1000));
+  })();
+  try { await _refreshPromise; } finally { _refreshPromise = null; }
+}
+
+// Prüft ob ein Response-Body ein JWT-Expired-Fehler ist
+function isJwtExpired(bodyText) {
+  try { const j = JSON.parse(bodyText); return j.code === 'PGRST303' || j.message?.toLowerCase().includes('jwt expired') || j.error === 'invalid_token'; }
+  catch(e) { return bodyText.includes('JWT expired') || bodyText.includes('PGRST303'); }
+}
+
 const api = {
   h() { return { apikey: SUPABASE_KEY, Authorization: `Bearer ${authToken || SUPABASE_KEY}`, 'Content-Type': 'application/json' }; },
+
+  // Führt einen fetch aus; bei JWT-Fehler einmal Token refreshen und retry
+  async _fetch(url, opts, retried = false) {
+    const r = await fetch(url, { ...opts, headers: { ...this.h(), ...(opts.extraHeaders||{}) } });
+    if (!r.ok) {
+      const body = await r.text();
+      if (!retried && isJwtExpired(body)) {
+        try {
+          await refreshTokenIfNeeded();
+          return this._fetch(url, opts, true); // einmaliger Retry mit neuem Token
+        } catch(refreshErr) {
+          doLogout(); // Refresh fehlgeschlagen → neu anmelden
+          throw new Error('Session abgelaufen. Bitte neu anmelden.');
+        }
+      }
+      throw new Error(body);
+    }
+    return r;
+  },
+
   async get(table, qs='') {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, { headers: this.h() });
-    if (!r.ok) throw new Error(await r.text());
+    const r = await this._fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, {});
     return r.json();
   },
   async post(table, data) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-      method:'POST', headers:{...this.h(), Prefer:'return=representation'}, body: JSON.stringify(data)
+    const r = await this._fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+      method:'POST', extraHeaders:{ Prefer:'return=representation' }, body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error(await r.text());
     return r.json();
   },
   async patch(table, filter, data) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
-      method:'PATCH', headers:{...this.h(), Prefer:'return=minimal'}, body: JSON.stringify(data)
+    await this._fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
+      method:'PATCH', extraHeaders:{ Prefer:'return=minimal' }, body: JSON.stringify(data)
     });
-    if (!r.ok) throw new Error(await r.text());
   },
   async delete(table, filter) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, {
-      method:'DELETE', headers: this.h()
-    });
-    if (!r.ok) throw new Error(await r.text());
+    await this._fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method:'DELETE' });
   },
   async upsert(table, data) {
-    const check = await fetch(`${SUPABASE_URL}/rest/v1/${table}?produkt_id=eq.${data.produkt_id}&lagerort=eq.${data.lagerort}`, { headers: this.h() });
+    const check = await this._fetch(`${SUPABASE_URL}/rest/v1/${table}?produkt_id=eq.${data.produkt_id}&lagerort=eq.${data.lagerort}`, {});
     const existing = await check.json();
     if (existing && existing.length > 0) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?produkt_id=eq.${data.produkt_id}&lagerort=eq.${data.lagerort}`, { method:'PATCH', headers:{...this.h(), Prefer:'return=minimal'}, body: JSON.stringify(data) });
-      if (!r.ok) throw new Error(await r.text());
+      await this._fetch(`${SUPABASE_URL}/rest/v1/${table}?produkt_id=eq.${data.produkt_id}&lagerort=eq.${data.lagerort}`, {
+        method:'PATCH', extraHeaders:{ Prefer:'return=minimal' }, body: JSON.stringify(data)
+      });
     } else {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method:'POST', headers:{...this.h(), Prefer:'return=minimal'}, body: JSON.stringify(data) });
-      if (!r.ok) throw new Error(await r.text());
+      await this._fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+        method:'POST', extraHeaders:{ Prefer:'return=minimal' }, body: JSON.stringify(data)
+      });
     }
   }
 };
@@ -522,11 +568,59 @@ function sync(s) { const d = document.getElementById('syncDot'); d.className = '
 // ══════════════════════════════════════════════════════════
 // TABS / FILTER
 // ══════════════════════════════════════════════════════════
+// Welcher Tab ist gerade aktiv
+let aktTab = 'produkte';
+
+// Daten im Hintergrund neu laden und aktiven Tab neu rendern
+// Verhindert doppelten Refresh wenn bereits einer läuft
+let _refreshing = false;
+async function refreshData() {
+  if (_refreshing) return;
+  _refreshing = true;
+  sync('syncing');
+  try {
+    [produkte, bestaende, buchungen, userKuerzel, lsAustraege, kunden, lsBestaende] = await Promise.all([
+      api.get('lager_produkte','order=name.asc,gebinde_kg.desc'),
+      api.get('lager_bestand','order=lagerort.asc'),
+      api.get('lager_buchungen','order=erstellt_am.desc&limit=500'),
+      api.get('lager_user_kuerzel','order=kuerzel.asc'),
+      api.get('lager_ls_austrag','order=erstellt_am.desc&limit=300'),
+      api.get('lager_kunden','order=name.asc'),
+      api.get('lager_ls_bestand','order=produkt_id.asc')
+    ]);
+    // Eigenes Kürzel aktualisieren
+    const meins = userKuerzel.find(u => u.user_id === meineUserId);
+    meinKuerzel = meins ? meins.kuerzel : '';
+    sync('ok');
+    // Nur den aktuell sichtbaren Tab neu rendern — kein Flackern anderer Tabs
+    renderTabById(aktTab);
+    updateUebersichtBadge();
+  } catch(e) {
+    sync('error');
+    toast('❌ Aktualisierung fehlgeschlagen: ' + e.message);
+  } finally {
+    _refreshing = false;
+  }
+}
+
+function renderTabById(id) {
+  if (id === 'produkte')    renderProdukte();
+  else if (id === 'uebersicht') renderUebersicht();
+  else if (id === 'log')    renderLog();
+  else if (id === 'verwaltung') renderVerwaltung();
+  else if (id === 'ls')     renderLS();
+  else if (id === 'differenz')  renderDifferenz();
+  else if (id === 'hilfe')  renderHilfe();
+}
+
 function setTab(id, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + id).classList.add('active');
   btn.classList.add('active');
+  aktTab = id;
+  // Daten bei jedem Tab-Wechsel frisch aus Supabase laden
+  refreshData();
 }
 function setFilter(f, btn) {
   aktFilter = f;
@@ -1028,10 +1122,15 @@ async function setzeIstBestand(pid, lo, vsid) {
   }catch(e){sync('error');toast('❌ '+e.message);}
 }
 async function lsBestandSetzen(pid, val) {
-  const check=await fetch(`${SUPABASE_URL}/rest/v1/lager_ls_bestand?produkt_id=eq.${pid}`,{headers:api.h()});
-  const existing=await check.json();
-  if(existing&&existing.length>0){ await api.patch('lager_ls_bestand',`produkt_id=eq.${pid}`,{menge_kg:val,aktualisiert_am:new Date().toISOString()}); }
-  else { await fetch(`${SUPABASE_URL}/rest/v1/lager_ls_bestand`,{method:'POST',headers:{...api.h(),Prefer:'return=minimal'},body:JSON.stringify({produkt_id:pid,menge_kg:val})}); }
+  const check = await api._fetch(`${SUPABASE_URL}/rest/v1/lager_ls_bestand?produkt_id=eq.${pid}`, {});
+  const existing = await check.json();
+  if (existing && existing.length > 0) {
+    await api.patch('lager_ls_bestand', `produkt_id=eq.${pid}`, { menge_kg: val, aktualisiert_am: new Date().toISOString() });
+  } else {
+    await api._fetch(`${SUPABASE_URL}/rest/v1/lager_ls_bestand`, {
+      method: 'POST', extraHeaders: { Prefer: 'return=minimal' }, body: JSON.stringify({ produkt_id: pid, menge_kg: val })
+    });
+  }
   const idx=lsBestaende.findIndex(b=>b.produkt_id===pid);
   if(idx>=0) lsBestaende[idx].menge_kg=val; else lsBestaende.push({produkt_id:pid,menge_kg:val});
 }
@@ -1071,13 +1170,31 @@ async function doLogin() {
 }
 async function checkSession() {
   const token=localStorage.getItem('lager_token'), refresh=localStorage.getItem('lager_refresh'), exp=parseInt(localStorage.getItem('lager_token_exp')||'0');
-  if(token&&Date.now()<exp){authToken=token;hideLogin();await init();renderVerwaltung();}
-  else if(refresh){
+  if(token&&Date.now()<exp){
+    authToken=token;
+    hideLogin();
+    await init();
+    renderVerwaltung();
+    // Proaktiver Hintergrund-Refresh: 5 Minuten vor Ablauf automatisch erneuern
+    const msLeft = exp - Date.now();
+    const refreshIn = Math.max(msLeft - 5 * 60 * 1000, 10000);
+    setTimeout(async () => {
+      try { await refreshTokenIfNeeded(); } catch(e) { /* wird beim nächsten API-Call behandelt */ }
+    }, refreshIn);
+  } else if(refresh){
     try {
       const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh})});
       const data=await r.json(); if(!r.ok) throw new Error();
-      authToken=data.access_token; localStorage.setItem('lager_token',authToken); localStorage.setItem('lager_refresh',data.refresh_token); localStorage.setItem('lager_token_exp',Date.now()+(data.expires_in*1000));
+      authToken=data.access_token;
+      localStorage.setItem('lager_token',authToken); localStorage.setItem('lager_refresh',data.refresh_token);
+      const newExp = Date.now()+(data.expires_in*1000);
+      localStorage.setItem('lager_token_exp', newExp);
       hideLogin(); await init(); renderVerwaltung();
+      // Auch hier proaktiver Refresh planen
+      const refreshIn = Math.max(data.expires_in*1000 - 5*60*1000, 10000);
+      setTimeout(async () => {
+        try { await refreshTokenIfNeeded(); } catch(e) {}
+      }, refreshIn);
     }catch(e){localStorage.removeItem('lager_token');localStorage.removeItem('lager_refresh');localStorage.removeItem('lager_token_exp');showLogin();}
   } else { showLogin(); }
 }
@@ -1091,7 +1208,13 @@ checkSession();
 function renderLS(filterQ='') {
   const activeId=document.activeElement?.id, el=document.getElementById('lsContent');
   if(!el) return;
-  const names=uniqueNames().filter(name=>{if(filterQ&&!norm(name).includes(norm(filterQ)))return false;return getLsBestandName(name)!==null;});
+  const names=uniqueNames().filter(name=>{
+    if(filterQ&&!norm(name).includes(norm(filterQ)))return false;
+    // null = noch nie Inventur gemacht → ausblenden
+    // 0   = Inventur gemacht, komplett ausgetragen → trotzdem zeigen (Eingang möglich)
+    // >0  = Bestand vorhanden → zeigen
+    return getLsBestandName(name) !== null;
+  });
   const scrollEl=document.querySelector('.scroll-area'), scrollTop=scrollEl?scrollEl.scrollTop:0;
   const offene=[...document.querySelectorAll('.ls-pc.open')].map(c=>c.id);
   const hatInventur=uniqueNames().some(n=>getLsBestandName(n)!==null);
@@ -1137,9 +1260,28 @@ async function lsAustragSpeichernDirekt(pid,sid,gebinde){
   const menge=parseFloat(mengeInp?.value),kunde=kundeInp?.value.trim(),lsDatum=datumInp?.value||null,istEingang=signBtn&&signBtn.textContent==='+';
   if(isNaN(menge)||menge<=0){toast('⚠️ Bitte Menge eingeben');mengeInp?.focus();return;}
   if(!kunde){toast('⚠️ Bitte Kunde eingeben');kundeInp?.focus();return;}
-  const lsAktuell=getLsBestand(pid);
-  if(lsAktuell===null){toast('⚠️ Erst Inventur in Verwaltung durchführen!');return;}
-  if(!istEingang&&lsAktuell-menge<0){toast(`⛔ LS-Bestand: ${lsAktuell} kg, Entnahme: ${menge} kg`);return;}
+
+  // getLsBestand gibt null zurück wenn KEIN Eintrag in lager_ls_bestand existiert (noch keine Inventur)
+  // getLsBestand gibt 0 zurück wenn Eintrag existiert aber Bestand = 0 (komplett ausgetragen)
+  // getLsBestand gibt >0 zurück wenn noch Bestand vorhanden
+  // → null = Inventur fehlt (blockieren)
+  // → 0 bei Eingang = ok (erlaubt, addiert)
+  // → 0 bei Entnahme = blockieren (nichts mehr da)
+  const lsAktuell = getLsBestand(pid);
+
+  if (lsAktuell === null) {
+    toast('⚠️ Kein LS-Bestand erfasst — bitte zuerst Inventur in Verwaltung → SET durchführen');
+    return;
+  }
+  if (!istEingang && lsAktuell <= 0) {
+    toast(`⛔ LS-Bestand ist 0 kg — nichts mehr zum Austragen`);
+    return;
+  }
+  if (!istEingang && lsAktuell - menge < 0) {
+    toast(`⛔ Nicht möglich: LS-Bestand ${lsAktuell} kg, Entnahme ${menge} kg — zu viel`);
+    return;
+  }
+
   sync('syncing');
   try {
     const delta=istEingang?menge:-menge, neuerLsBestand=lsAktuell+delta;
@@ -1150,7 +1292,7 @@ async function lsAustragSpeichernDirekt(pid,sid,gebinde){
     if(mengeInp)mengeInp.value='';if(datumInp)datumInp.value='';if(kundeInp)kundeInp.value='';
     sync('ok');renderLS(document.getElementById('lsSuche')?.value||'');renderDifferenz();
     const pname=produkte.find(p=>p.id===pid)?.name||'';
-    toast(`📝 LS: ${istEingang?'+':'−'}${menge} kg ${pname} → ${kunde}`);
+    toast(`📝 LS: ${istEingang?'+':'−'}${menge} kg ${pname} → ${kunde} (Rest: ${neuerLsBestand} kg)`);
   }catch(e){sync('error');toast('❌ '+e.message);}
 }
 
@@ -1246,7 +1388,7 @@ function renderHilfe(){
         <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">📝</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#b45309;">Innendienst</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Büro trägt Lieferscheine ein</div></div>
         <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">⚖️</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#15803d;">Diff = 0</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Alles stimmt überein ✅</div></div>
       </div>
-      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V11:</strong> Bestellnotizen in Supabase gespeichert → für alle sichtbar · Auto-Reset nach Eingang · Version in Header</div>
+      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V14:</strong> LS Austrag Bugfix — Lagerbestand 0 blockiert nicht mehr den LS-Austrag · null vs. 0 korrekt getrennt · Tab-Wechsel Refresh · Auto-JWT</div>
     </div></div>`;
 }
 
