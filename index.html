@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Lagerchemie V14</title>
+<title>Lagerchemie V17</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -246,9 +246,12 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <script>
   const SUPABASE_URL = 'https://loekjdetgppmxnwnwxkm.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A';
-  const APP_VERSION = 'V14';
+  const APP_VERSION = 'V17';
   // Prefix für Bestellnotizen in lager_buchungen
   const BESTELL_PREFIX = '🗒️ Bestellnotiz: ';
+  // Produkte, deren Kachel im Produkte-Tab in PAKETEN statt kg angezeigt wird
+  // (reine Display-Umschaltung — gespeichert wird immer kg). Teilstring, normalisiert.
+  const PAKET_ANZEIGE = ['dip slide'];
 </script>
 
 <!-- UPDATE BANNER -->
@@ -261,7 +264,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <div id="loginScreen" style="display:none; position:fixed; inset:0; background:#0369a1; z-index:9999; align-items:center; justify-content:center; padding:20px;">
   <div style="background:#fff; border-radius:16px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
     <div style="font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:24px; color:#0369a1; margin-bottom:4px;">
-      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span> <span style="font-size:14px;color:#94a3b8;font-weight:400;">${APP_VERSION}</span>
+      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span> <span id="loginVer" style="font-size:14px;color:#94a3b8;font-weight:400;">V17</span>
     </div>
     <div style="font-family:'Barlow',sans-serif; font-size:13px; color:#64748b; margin-bottom:24px;">Bitte anmelden um fortzufahren</div>
     <div style="margin-bottom:12px;">
@@ -279,7 +282,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 
 <!-- HEADER -->
 <div class="header">
-  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V14</span></div>
+  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V17</span></div>
   <div class="sync-dot" id="syncDot"></div>
   <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">LOGOUT</button>
 </div>
@@ -435,11 +438,13 @@ function fmtDatumKurz(isoStr) {
   return new Date(isoStr).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
 }
 const norm = s => s.toLowerCase().replace(/[\s\-\._]/g,'');
+// Produkt in Paketen statt kg anzeigen? (reine Display-Umschaltung, siehe PAKET_ANZEIGE)
+function zeigtPakete(name){ const n = norm(name); return PAKET_ANZEIGE.some(x => n.includes(norm(x))); }
 
 // ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
-let produkte = [], bestaende = [], buchungen = [], userKuerzel = [], lsAustraege = [], kunden = [], lsBestaende = [];
+let produkte = [], bestaende = [], buchungen = [], userKuerzel = [], lsAustraege = [], kunden = [], lsBestaende = [], bestellnotizen = [];
 let aktFilter = 'alle';
 let meinKuerzel = '';
 let meineUserId = null;
@@ -448,46 +453,40 @@ let meineUserId = null;
 // BESTELLNOTIZEN HELFER
 // ══════════════════════════════════════════════════════════
 
-// Gibt die aktive Bestellnotiz für einen Produktnamen zurück —
-// NUR wenn sie NACH dem letzten Eingang für dieses Produkt erstellt wurde.
-// Sonst null (= frische Eingabe zeigen).
-function getAktiveBestellnotiz(name) {
-  const ids = prodsFor(name).map(p => p.id);
+// Alle Gebinde (produkt_id-Ebene) unter 50% ihres eigenen Richtwerts.
+// Basis für Badge, Übersicht-Zähler und Nachbestellen-Liste — alles pro Gebinde.
+function niedrigeGebinde() {
+  return produkte.filter(p => {
+    const rw = richtwertProd(p.id);
+    return rw && (getMenge(p.id,'Garage') + getMenge(p.id,'Werkstatt')) < rw * 0.5;
+  });
+}
 
-  // Alle Buchungen für dieses Produkt, neuste zuerst
-  const relevant = buchungen.filter(b => ids.includes(b.produkt_id));
-
-  // Letzten Eingang finden (menge_kg > 0, KEINE Bestellnotiz)
-  const letzterEingang = relevant.find(b =>
+// Aktive Bestellnotiz PRO GEBINDE (produkt_id) —
+// nur wenn sie NACH dem letzten Eingang dieses Gebindes erstellt wurde.
+// Notizen kommen aus dem separaten bestellnotizen-Array (unabhängig vom Log-Limit),
+// der letzte Eingang aus buchungen.
+function getAktiveBestellnotiz(pid) {
+  const letzterEingang = buchungen.find(b =>
+    b.produkt_id === pid &&
     Number(b.menge_kg) > 0 &&
     !(b.notiz && b.notiz.startsWith(BESTELL_PREFIX))
   );
+  const letzteNotiz = bestellnotizen.find(b => b.produkt_id === pid);
 
-  // Letzte Bestellnotiz finden
-  const letzteNotiz = relevant.find(b =>
-    b.notiz && b.notiz.startsWith(BESTELL_PREFIX)
-  );
-
-  if (!letzteNotiz) return null; // keine Bestellnotiz vorhanden
-
-  // Ist die Notiz NACH dem letzten Eingang? → aktiv anzeigen
-  // Ist kein Eingang vorhanden oder Notiz ist neuer → aktiv
-  if (!letzterEingang) return letzteNotiz; // noch nie Eingang → immer anzeigen
+  if (!letzteNotiz) return null;
+  if (!letzterEingang) return letzteNotiz;
 
   const tNotiz = new Date(letzteNotiz.erstellt_am).getTime();
   const tEingang = new Date(letzterEingang.erstellt_am).getTime();
-
   return tNotiz > tEingang ? letzteNotiz : null;
 }
 
-async function speichereBestellnotiz(name, sid) {
+async function speichereBestellnotiz(pid, sid) {
   const inp = document.getElementById(sid);
   if (!inp) return;
   const text = inp.value.trim();
   if (!text) { toast('⚠️ Bitte Text eingeben'); return; }
-
-  // Erste Produkt-ID des Namens nehmen (Notiz gilt für den Namen, nicht Gebindegröße)
-  const pid = prodsFor(name)[0]?.id;
   if (!pid) return;
 
   sync('syncing');
@@ -499,7 +498,7 @@ async function speichereBestellnotiz(name, sid) {
       notiz: BESTELL_PREFIX + text,
       kuerzel: meinKuerzel || null
     });
-    buchungen.unshift(res[0]);
+    bestellnotizen.unshift(res[0]);
     inp.value = '';
     sync('ok');
     renderUebersicht();
@@ -513,6 +512,7 @@ async function loescheBestellnotiz(buchungId) {
   sync('syncing');
   try {
     await api.delete('lager_buchungen', `id=eq.${buchungId}`);
+    bestellnotizen = bestellnotizen.filter(b => b.id !== buchungId);
     buchungen = buchungen.filter(b => b.id !== buchungId);
     sync('ok');
     renderUebersicht();
@@ -525,15 +525,15 @@ async function loescheBestellnotiz(buchungId) {
 // TAB BADGE
 // ══════════════════════════════════════════════════════════
 function updateUebersichtBadge() {
-  const niedrig = uniqueNames().filter(n => { const rw = richtwert(n); return rw && gesamtKg(n) < rw * 0.5; });
+  const anzahl = niedrigeGebinde().length;
   const tab = document.getElementById('tab-uebersicht');
   if (!tab) return;
   const old = tab.querySelector('.tab-badge');
   if (old) old.remove();
-  if (niedrig.length > 0) {
+  if (anzahl > 0) {
     const badge = document.createElement('span');
     badge.className = 'tab-badge';
-    badge.textContent = niedrig.length;
+    badge.textContent = anzahl;
     tab.appendChild(badge);
   }
 }
@@ -545,15 +545,17 @@ async function init() {
   sync('syncing');
   try {
     try { const payload = JSON.parse(atob(authToken.split('.')[1])); meineUserId = payload.sub; } catch(e) {}
-    [produkte, bestaende, buchungen, userKuerzel, lsAustraege, kunden, lsBestaende] = await Promise.all([
+    [produkte, bestaende, buchungen, userKuerzel, lsAustraege, kunden, lsBestaende, bestellnotizen] = await Promise.all([
       api.get('lager_produkte','order=name.asc,gebinde_kg.desc'),
       api.get('lager_bestand','order=lagerort.asc'),
-      // Alle Buchungen laden inkl. Bestellnotizen (menge_kg=0) — limit erhöht
       api.get('lager_buchungen','order=erstellt_am.desc&limit=500'),
       api.get('lager_user_kuerzel','order=kuerzel.asc'),
       api.get('lager_ls_austrag','order=erstellt_am.desc&limit=300'),
       api.get('lager_kunden','order=name.asc'),
-      api.get('lager_ls_bestand','order=produkt_id.asc')
+      api.get('lager_ls_bestand','order=produkt_id.asc'),
+      // Bestellnotizen getrennt laden (menge_kg=0) — unabhängig vom 500er-Log-Fenster,
+      // damit aktive Notizen nie aus dem Blickfeld fallen
+      api.get('lager_buchungen','menge_kg=eq.0&order=erstellt_am.desc&limit=1000')
     ]);
     const meins = userKuerzel.find(u => u.user_id === meineUserId);
     meinKuerzel = meins ? meins.kuerzel : '';
@@ -579,14 +581,15 @@ async function refreshData() {
   _refreshing = true;
   sync('syncing');
   try {
-    [produkte, bestaende, buchungen, userKuerzel, lsAustraege, kunden, lsBestaende] = await Promise.all([
+    [produkte, bestaende, buchungen, userKuerzel, lsAustraege, kunden, lsBestaende, bestellnotizen] = await Promise.all([
       api.get('lager_produkte','order=name.asc,gebinde_kg.desc'),
       api.get('lager_bestand','order=lagerort.asc'),
       api.get('lager_buchungen','order=erstellt_am.desc&limit=500'),
       api.get('lager_user_kuerzel','order=kuerzel.asc'),
       api.get('lager_ls_austrag','order=erstellt_am.desc&limit=300'),
       api.get('lager_kunden','order=name.asc'),
-      api.get('lager_ls_bestand','order=produkt_id.asc')
+      api.get('lager_ls_bestand','order=produkt_id.asc'),
+      api.get('lager_buchungen','menge_kg=eq.0&order=erstellt_am.desc&limit=1000')
     ]);
     // Eigenes Kürzel aktualisieren
     const meins = userKuerzel.find(u => u.user_id === meineUserId);
@@ -647,20 +650,28 @@ function getLsBestandName(name) { const ids = prodsFor(name).map(p => p.id); con
 // BUCHEN
 // ══════════════════════════════════════════════════════════
 async function buchen(pid, lo, delta, notiz='') {
+  const alt = getMenge(pid, lo);
+  // Über-Entnahme hart blockieren statt still auf 0 zu clampen (sonst lügt das Log)
+  if (Number(delta) < 0 && alt + Number(delta) < 0) {
+    const pname = produkte.find(p => p.id===pid)?.name||'';
+    toast(`⛔ Nur ${alt} kg in ${lo} — Entnahme von ${Math.abs(delta)} kg nicht möglich (${pname})`);
+    return false;
+  }
   sync('syncing');
   try {
-    const neu = Math.max(0, getMenge(pid, lo) + Number(delta));
+    const neu = alt + Number(delta);
     await api.upsert('lager_bestand', { produkt_id: pid, lagerort: lo, menge_kg: neu, aktualisiert_am: new Date().toISOString() });
-    await api.post('lager_buchungen', { produkt_id: pid, lagerort: lo, menge_kg: delta, notiz: notiz||null, kuerzel: meinKuerzel||null });
+    const bres = await api.post('lager_buchungen', { produkt_id: pid, lagerort: lo, menge_kg: delta, notiz: notiz||null, kuerzel: meinKuerzel||null });
     const idx = bestaende.findIndex(b => b.produkt_id===pid && b.lagerort===lo);
     if (idx>=0) bestaende[idx].menge_kg = neu; else bestaende.push({ produkt_id:pid, lagerort:lo, menge_kg:neu });
-    buchungen.unshift({ produkt_id:pid, lagerort:lo, menge_kg:delta, notiz, kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
+    buchungen.unshift(bres && bres[0] ? bres[0] : { produkt_id:pid, lagerort:lo, menge_kg:delta, notiz, kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
     sync('ok');
     renderProdukte(); renderUebersicht(); renderLog();
     updateUebersichtBadge();
     const pname = produkte.find(p => p.id===pid)?.name||'';
     toast(`${delta>0?'➕':'➖'} ${Math.abs(delta)} kg · ${pname} · ${lo}`);
-  } catch(e) { sync('error'); toast('❌ ' + e.message); }
+    return true;
+  } catch(e) { sync('error'); toast('❌ ' + e.message); return false; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -686,21 +697,30 @@ function renderProdukte() {
 
   el.innerHTML = names.map(name => {
     const gkg = gesamtKg(name), rw = richtwert(name);
-    const pct = rw ? gkg/rw : 1;
-    const barCls = pct < 0.3 ? 'bl' : pct < 0.5 ? 'bw' : '';
-    const cardCls = pct < 0.3 ? 'pc-low' : pct < 0.5 ? 'pc-warn' : '';
+    // Kartenrand pro Gebinde: rot sobald ein Gebinde <30%, orange sobald eins <50%
+    const gebPct = p => { const r = richtwertProd(p.id); return r ? (getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt'))/r : 1; };
+    const anyLow30 = prodsFor(name).some(p => gebPct(p) < 0.3);
+    const anyLow50 = prodsFor(name).some(p => gebPct(p) < 0.5);
+    const barCls = anyLow30 ? 'bl' : anyLow50 ? 'bw' : '';
+    const cardCls = anyLow30 ? 'pc-low' : anyLow50 ? 'pc-warn' : '';
+    const pakete = zeigtPakete(name); // Display in Paketen statt kg (nur konfigurierte Produkte)
+    const pkgTxt = (kg,gb) => { if(!gb) return '–'; const v=kg/gb; return Number.isInteger(v)?String(v):v.toFixed(1); };
     const chips = prodsFor(name).flatMap(p => ['Garage','Werkstatt'].map(lo => {
       const kg = getMenge(p.id, lo); if (!kg) return '';
       const rwP = richtwertProd(p.id);
-      return `<span class="lchip ${lo.toLowerCase()}"><span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> <strong>${kg}kg</strong>${rwP?` · <span style="opacity:0.5;font-size:10px;">RW ${rwP}kg</span>`:''}</span>`;
+      const wert = pakete ? `<strong>${pkgTxt(kg,p.gebinde_kg)} Pkg</strong>` : `<strong>${kg}kg</strong>`;
+      return `<span class="lchip ${lo.toLowerCase()}"><span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> ${wert}${rwP?` · <span style="opacity:0.5;font-size:10px;">RW ${rwP}kg</span>`:''}</span>`;
     })).join('');
     const rows = prodsFor(name).flatMap(p => ['Garage','Werkstatt'].map(lo => {
       const kg = getMenge(p.id, lo), kan = p.gebinde_kg ? (kg/p.gebinde_kg).toFixed(1) : '–';
       const sid = `${iqq(p.id)}_${lo}`;
+      const mengeDisplay = pakete
+        ? `<div class="menge-display"><div class="menge-kg">${pkgTxt(kg,p.gebinde_kg)} <span style="font-size:14px;color:var(--muted)">Pkg</span></div><div class="menge-sub">${kg} kg · à ${p.gebinde_kg} kg/Paket</div></div>`
+        : `<div class="menge-display"><div class="menge-kg">${kg} <span style="font-size:14px;color:var(--muted)">kg</span></div><div class="menge-sub">${kan} Gebinde à ${p.gebinde_kg} kg</div></div>`;
       return `<div class="gebinde-row">
         <div class="gebinde-top"><span class="gebinde-size-label">${p.gebinde_kg} kg Gebinde</span><span class="lort-badge ${lo.toLowerCase()}">${lo==='Garage'?'🔵':'🟡'} ${lo}</span></div>
         <div class="gebinde-mid">
-          <div class="menge-display"><div class="menge-kg">${kg} <span style="font-size:14px;color:var(--muted)">kg</span></div><div class="menge-sub">${kan} Gebinde à ${p.gebinde_kg} kg</div></div>
+          ${mengeDisplay}
           <div class="counter-group">
             <button class="cbtn minus" onclick="qb('${p.id}','${lo}',-${p.gebinde_kg},event)">−</button>
             <button class="cbtn plus" onclick="qb('${p.id}','${lo}',+${p.gebinde_kg},event)">+</button>
@@ -743,8 +763,9 @@ async function mb(pid,lo,sid,gebinde) {
   const anzahl=parseFloat(inp.value);
   if(isNaN(anzahl)||anzahl<=0){toast('⚠️ Bitte Anzahl Gebinde eingeben');return;}
   const deltaKg=((!signBtn||signBtn.textContent==='−')?-1:1)*anzahl*gebinde;
-  inp.value=''; if(noteInp) noteInp.value='';
-  await buchen(pid,lo,deltaKg,noteInp?.value.trim()||'');
+  const notiz=noteInp?.value.trim()||'';
+  const ok=await buchen(pid,lo,deltaKg,notiz);
+  if(ok!==false){ inp.value=''; if(noteInp) noteInp.value=''; } // nur bei Erfolg leeren
 }
 
 // ══════════════════════════════════════════════════════════
@@ -754,15 +775,14 @@ function renderUebersicht() {
   const el = document.getElementById('uebersichtContent');
   const gKg = bestaende.filter(b=>b.lagerort==='Garage').reduce((s,b)=>s+Number(b.menge_kg),0);
   const wKg = bestaende.filter(b=>b.lagerort==='Werkstatt').reduce((s,b)=>s+Number(b.menge_kg),0);
-  const niedrig = uniqueNames().filter(n=>{const rw=richtwert(n);return rw&&gesamtKg(n)<rw*0.5;});
+  const niedrigG = niedrigeGebinde();
 
   let nachbestellenHTML = '';
-  if (niedrig.length) {
-    const rows = niedrig.map(name => {
-      const kg=gesamtKg(name), rw=richtwert(name), pct=Math.round(kg/rw*100);
-      const aktiveNotiz = getAktiveBestellnotiz(name);
-      const sid = 'bk_' + name.replace(/[^a-zA-Z0-9]/g,'_');
-      // Notiztext ohne Prefix für Anzeige
+  if (niedrigG.length) {
+    const rows = niedrigG.map(p => {
+      const kg=getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt'), rw=richtwertProd(p.id), pct=Math.round(kg/rw*100);
+      const aktiveNotiz = getAktiveBestellnotiz(p.id);
+      const sid = 'bk_' + String(p.id).replace(/[^a-zA-Z0-9]/g,'_');
       const notizText = aktiveNotiz ? aktiveNotiz.notiz.replace(BESTELL_PREFIX,'') : '';
       const notizDatum = aktiveNotiz ? fmtDatum(aktiveNotiz.erstellt_am) : '';
       const notizKuerzel = aktiveNotiz?.kuerzel ? ` · ${aktiveNotiz.kuerzel}` : '';
@@ -777,22 +797,21 @@ function renderUebersicht() {
           <button class="bestell-aktiv-del" onclick="loescheBestellnotiz('${aktiveNotiz.id}')" title="Notiz löschen">✕</button>
         </div>` : '';
 
-      // Placeholder je nach Status
       const placeholder = aktiveNotiz
         ? 'Notiz aktualisieren…'
         : 'z.B. bestellt 10.06. bei Lieferant X…';
 
       return `<div class="bestell-row">
         <div class="bestell-header">
-          <span class="bestell-name">${name}</span>
+          <span class="bestell-name">${p.name} <span style="font-size:11px;color:#94a3b8;font-weight:400">· ${p.gebinde_kg} kg Gebinde</span></span>
           <span class="bestell-kg">${kg} kg <span style="color:#94a3b8;font-size:10px;font-weight:400">/ ${rw} kg (${pct}%)</span></span>
         </div>
         ${aktivBlock}
         <div class="bestell-input-row">
           <input type="text" class="bestell-inp" id="${sid}"
             placeholder="${placeholder}"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();speichereBestellnotiz('${name.replace(/'/g,"\\'")}','${sid}');}">
-          <button class="bestell-btn" onclick="speichereBestellnotiz('${name.replace(/'/g,"\\'")}','${sid}')">🗒️ Speichern</button>
+            onkeydown="if(event.key==='Enter'){event.preventDefault();speichereBestellnotiz('${p.id}','${sid}');}">
+          <button class="bestell-btn" onclick="speichereBestellnotiz('${p.id}','${sid}')">🗒️ Speichern</button>
         </div>
       </div>`;
     }).join('');
@@ -801,7 +820,7 @@ function renderUebersicht() {
     <div class="sl">⚠️ Nachbestellen</div>
     <div class="card" style="border-color:#fca5a5;">
       <div style="background:#fef2f2;border-bottom:2px solid #fca5a5;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:#b91c1c;">⚠️ ${niedrig.length} Produkt${niedrig.length>1?'e':''} unter 50% Richtwert</span>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:#b91c1c;">⚠️ ${niedrigG.length} Gebinde unter 50% Richtwert</span>
         <span style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;">Notizen für alle sichtbar</span>
       </div>
       <div class="card-body" style="padding:0 14px;">
@@ -823,13 +842,14 @@ function renderUebersicht() {
       <div class="stat-card" style="border-color:#7dd3fc"><div class="stat-label">🔵 Garage</div><div class="stat-val" style="color:var(--surface2)">${gKg}</div><div class="stat-sub">kg gesamt</div></div>
       <div class="stat-card" style="border-color:#fcd34d"><div class="stat-label">🟡 Werkstatt</div><div class="stat-val" style="color:var(--warn)">${wKg}</div><div class="stat-sub">kg gesamt</div></div>
       <div class="stat-card"><div class="stat-label">📦 Produkte</div><div class="stat-val">${uniqueNames().length}</div><div class="stat-sub">erfasst</div></div>
-      <div class="stat-card" style="${niedrig.length?'border-color:#fca5a5':''}"><div class="stat-label">⚠️ Nachbestellen</div><div class="stat-val" style="color:${niedrig.length?'var(--err)':'var(--ok)'}">${niedrig.length}</div><div class="stat-sub">unter 50% Richtwert</div></div>
+      <div class="stat-card" style="${niedrigG.length?'border-color:#fca5a5':''}"><div class="stat-label">⚠️ Nachbestellen</div><div class="stat-val" style="color:${niedrigG.length?'var(--err)':'var(--ok)'}">${niedrigG.length}</div><div class="stat-sub">Gebinde unter 50%</div></div>
     </div>
     ${nachbestellenHTML}
     <div class="sl">Alle Produkte</div>
     <div class="card"><div class="card-body">
       ${uniqueNames().map(name=>{
-        const kg=gesamtKg(name),rw=richtwert(name),isLow=rw&&kg<rw*0.5;
+        const kg=gesamtKg(name);
+        const isLow=prodsFor(name).some(p=>{const r=richtwertProd(p.id);return r&&(getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt'))<r*0.5;});
         const gk=loKg(name,'Garage'),wk=loKg(name,'Werkstatt');
         return `<div class="rr"><div class="rl">${name}<div style="margin-top:2px;display:flex;gap:8px">${gk>0?`<span style="font-size:10px;color:var(--surface2)">🔵 ${gk} kg</span>`:''}${wk>0?`<span style="font-size:10px;color:var(--warn)">🟡 ${wk} kg</span>`:''}</div></div><span class="rv ${isLow?'err':''}">${kg} kg</span></div>`;
       }).join('')}
@@ -1200,8 +1220,6 @@ async function checkSession() {
 }
 function doLogout() { authToken=null; localStorage.removeItem('lager_token'); localStorage.removeItem('lager_refresh'); localStorage.removeItem('lager_token_exp'); showLogin(); }
 
-checkSession();
-
 // ══════════════════════════════════════════════════════════
 // LS AUSTRAG
 // ══════════════════════════════════════════════════════════
@@ -1250,7 +1268,7 @@ function renderLS(filterQ='') {
       </div>`;
     }).join('')}
     <div class="sl" style="margin-top:14px;">Letzte Einträge</div>
-    ${lsAustraege.length?`<div style="display:flex;flex-direction:column;gap:8px;">${lsAustraege.slice(0,20).map(ls=>{const p=produkte.find(p=>p.id===ls.produkt_id),lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;return`<div style="background:#fff;border:1px solid #bae6fd;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);display:flex;align-items:center;gap:12px;"><div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:#b91c1c;white-space:nowrap;">−${ls.menge_kg} kg</div><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#0f172a;">${p?p.name:'–'}</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:#0f172a;margin-top:2px;">${ls.kunde}${ls.kuerzel?` <span style="font-size:11px;font-weight:400;color:#64748b;">· ${ls.kuerzel}</span>`:''}</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;margin-top:1px;">${fmtDatum(ls.erstellt_am)}${lsDat?' · LS vom '+lsDat:''}</div></div><span style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:#b91c1c;white-space:nowrap;">LS</span></div>`;}).join('')}</div>`:'<div class="empty">Noch keine LS Austraege</div>'}`;
+    ${lsAustraege.length?`<div style="display:flex;flex-direction:column;gap:8px;">${lsAustraege.slice(0,20).map(ls=>{const p=produkte.find(p=>p.id===ls.produkt_id),lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;const m=Number(ls.menge_kg),pos=m>0,boxBg=pos?'#f0fdf4':'#fef2f2',boxBd=pos?'#86efac':'#fca5a5',boxCol=pos?'#15803d':'#b91c1c';return`<div style="background:#fff;border:1px solid #bae6fd;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);display:flex;align-items:center;gap:12px;"><div style="background:${boxBg};border:1px solid ${boxBd};border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:${boxCol};white-space:nowrap;">${pos?'+':''}${m} kg</div><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#0f172a;">${p?p.name:'–'}</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:#0f172a;margin-top:2px;">${ls.kunde}${ls.kuerzel?` <span style="font-size:11px;font-weight:400;color:#64748b;">· ${ls.kuerzel}</span>`:''}</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;margin-top:1px;">${fmtDatum(ls.erstellt_am)}${lsDat?' · LS vom '+lsDat:''}</div></div><span style="background:${boxBg};border:1px solid ${boxBd};border-radius:6px;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:${boxCol};white-space:nowrap;">${pos?'Korrektur':'LS'}</span></div>`;}).join('')}</div>`:'<div class="empty">Noch keine LS Austraege</div>'}`;
   setTimeout(()=>{offene.forEach(id=>{const c=document.getElementById(id);if(c)c.classList.add('open');});if(scrollEl)scrollEl.scrollTop=scrollTop;if(activeId){const el2=document.getElementById(activeId);if(el2&&(el2.tagName==='INPUT'||el2.tagName==='SELECT')){el2.focus();if(el2.type==='search'||el2.type==='text')el2.setSelectionRange(el2.value.length,el2.value.length);}}},0);
 }
 function lsKundeSuche(q,listId){const list=document.getElementById(listId);if(!list)return;const matches=kunden.filter(k=>k.name.toLowerCase().includes(q.toLowerCase()));list.innerHTML=matches.slice(0,8).map(k=>`<div onclick="document.getElementById('${listId}').previousElementSibling.value='${k.name}';document.getElementById('${listId}').style.display='none';" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #e0f2fe;font-family:'Barlow',sans-serif;font-size:14px;color:#0f172a;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background=''">${k.name}</div>`).join('');list.style.display=matches.length?'block':'none';}
@@ -1331,7 +1349,7 @@ function renderDifferenz(filterQ='',nurMitDiff=false){
             ${prodsFor(name).map(p=>{const adKg=getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt'),lsP=getLsBestand(p.id)??0,diffP=adKg-lsP,diffCol=diffP>0?'#b45309':diffP<0?'#b91c1c':'#15803d';return`<div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:6px;align-items:center;background:#f8fafc;border:1px solid #e0f2fe;border-radius:8px;padding:8px 10px;"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px;color:#475569;white-space:nowrap;">${p.gebinde_kg}kg</span><div style="text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--surface2);">${adKg} kg</div><div style="font-size:9px;color:#94a3b8;">📦 G:${getMenge(p.id,'Garage')} W:${getMenge(p.id,'Werkstatt')}</div></div><div style="text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:#b91c1c;">${lsP} kg</div><div style="font-size:9px;color:#94a3b8;">📝 LS</div></div><div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:${diffCol};">${diffP>0?'+':''}${diffP}</div><div style="font-size:9px;color:#94a3b8;">Diff</div></div></div>`;}).join('')}
           </div>
         </div>
-        ${lsEntries.length?`<div style="padding:10px 14px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">LS Einträge</div>${lsEntries.map(ls=>{const lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;"><span style="font-family:'DM Mono',monospace;font-size:13px;color:#b91c1c;min-width:60px;">−${ls.menge_kg} kg</span><span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#0f172a;">${ls.kunde}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;text-align:right;">${fmtDatum(ls.erstellt_am)}${lsDat?'<br>LS: '+lsDat:''}${ls.kuerzel?' · '+ls.kuerzel:''}</span></div>`;}).join('')}</div>`:''}
+        ${lsEntries.length?`<div style="padding:10px 14px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">LS Einträge</div>${lsEntries.map(ls=>{const lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;const m=Number(ls.menge_kg),pos=m>0;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;"><span style="font-family:'DM Mono',monospace;font-size:13px;color:${pos?'#15803d':'#b91c1c'};min-width:60px;">${pos?'+':''}${m} kg</span><span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#0f172a;">${ls.kunde}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;text-align:right;">${fmtDatum(ls.erstellt_am)}${lsDat?'<br>LS: '+lsDat:''}${ls.kuerzel?' · '+ls.kuerzel:''}</span></div>`;}).join('')}</div>`:''}
       </div>`;
     }).join(''):'<div class="empty">Keine Einträge vorhanden</div>'}`;
   if(filterQ!==''){setTimeout(()=>{const sf=document.getElementById('differenzSuche');if(sf){sf.focus();sf.setSelectionRange(sf.value.length,sf.value.length);}},0);}
@@ -1352,7 +1370,7 @@ function renderHilfe(){
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Entnahme buchen</div>
         <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">Produkte → Kachel antippen → − = 1 Gebinde entnehmen · + = Rückgabe · Manuell: Anzahl Gebinde eingeben → OK</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#0369a1;margin-bottom:6px;">Roter Rand / ⚠️ Badge</div>
-        <div style="font-size:12px;color:#475569;padding-left:12px;">Roter Rand = unter 30% Richtwert · Badge auf Übersicht-Tab = Anzahl Produkte die nachbestellt werden müssen → Büro informieren</div>
+        <div style="font-size:12px;color:#475569;padding-left:12px;">Roter Rand = ein Gebinde unter 30% Richtwert · oranger Rand = unter 50% · Badge auf Übersicht-Tab = Anzahl <strong>Gebinde</strong> (je Größe einzeln) unter 50% → Büro informieren</div>
       </div>
     </div>
     <div class="card" style="margin-bottom:12px;border-color:#cbd5e1;">
@@ -1388,10 +1406,11 @@ function renderHilfe(){
         <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">📝</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#b45309;">Innendienst</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Büro trägt Lieferscheine ein</div></div>
         <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">⚖️</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#15803d;">Diff = 0</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Alles stimmt überein ✅</div></div>
       </div>
-      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V14:</strong> LS Austrag Bugfix — Lagerbestand 0 blockiert nicht mehr den LS-Austrag · null vs. 0 korrekt getrennt · Tab-Wechsel Refresh · Auto-JWT</div>
+      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V17:</strong> LS-Korrektur (Rückbuchung) wird in „Letzte Einträge" und Differenz jetzt grün mit „+" angezeigt statt rot „−" · V16: Nachbestellen/Badge/Notizen pro Gebinde, Über-Entnahme blockiert, Bestellnotizen getrennt geladen, Dip Slide in Paketen · V15: Notiz-Fix manuelle Entnahme · V14: LS Austrag Fix · V13: Tab-Refresh</div>
     </div></div>`;
 }
 
+const _lv=document.getElementById('loginVer'); if(_lv) _lv.textContent=APP_VERSION;
 checkSession();
 </script>
 </body>
