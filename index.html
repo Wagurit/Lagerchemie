@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Lagerchemie V17</title>
+<title>Lagerchemie V19</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -246,7 +246,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <script>
   const SUPABASE_URL = 'https://loekjdetgppmxnwnwxkm.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A';
-  const APP_VERSION = 'V17';
+  const APP_VERSION = 'V19';
   // Prefix für Bestellnotizen in lager_buchungen
   const BESTELL_PREFIX = '🗒️ Bestellnotiz: ';
   // Produkte, deren Kachel im Produkte-Tab in PAKETEN statt kg angezeigt wird
@@ -264,7 +264,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <div id="loginScreen" style="display:none; position:fixed; inset:0; background:#0369a1; z-index:9999; align-items:center; justify-content:center; padding:20px;">
   <div style="background:#fff; border-radius:16px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
     <div style="font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:24px; color:#0369a1; margin-bottom:4px;">
-      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span> <span id="loginVer" style="font-size:14px;color:#94a3b8;font-weight:400;">V17</span>
+      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span> <span id="loginVer" style="font-size:14px;color:#94a3b8;font-weight:400;">V19</span>
     </div>
     <div style="font-family:'Barlow',sans-serif; font-size:13px; color:#64748b; margin-bottom:24px;">Bitte anmelden um fortzufahren</div>
     <div style="margin-bottom:12px;">
@@ -282,7 +282,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 
 <!-- HEADER -->
 <div class="header">
-  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V17</span></div>
+  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V19</span></div>
   <div class="sync-dot" id="syncDot"></div>
   <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">LOGOUT</button>
 </div>
@@ -576,28 +576,34 @@ let aktTab = 'produkte';
 // Daten im Hintergrund neu laden und aktiven Tab neu rendern
 // Verhindert doppelten Refresh wenn bereits einer läuft
 let _refreshing = false;
+let _refreshPending = false;
 async function refreshData() {
-  if (_refreshing) return;
+  // Läuft schon ein Refresh? Wunsch NICHT verwerfen, sondern vormerken —
+  // sonst zeigt ein Tab-Wechsel mitten im Fetch veraltete Daten (erst der 2. Tipp half).
+  if (_refreshing) { _refreshPending = true; return; }
   _refreshing = true;
   sync('syncing');
   try {
-    [produkte, bestaende, buchungen, userKuerzel, lsAustraege, kunden, lsBestaende, bestellnotizen] = await Promise.all([
-      api.get('lager_produkte','order=name.asc,gebinde_kg.desc'),
-      api.get('lager_bestand','order=lagerort.asc'),
-      api.get('lager_buchungen','order=erstellt_am.desc&limit=500'),
-      api.get('lager_user_kuerzel','order=kuerzel.asc'),
-      api.get('lager_ls_austrag','order=erstellt_am.desc&limit=300'),
-      api.get('lager_kunden','order=name.asc'),
-      api.get('lager_ls_bestand','order=produkt_id.asc'),
-      api.get('lager_buchungen','menge_kg=eq.0&order=erstellt_am.desc&limit=1000')
-    ]);
-    // Eigenes Kürzel aktualisieren
-    const meins = userKuerzel.find(u => u.user_id === meineUserId);
-    meinKuerzel = meins ? meins.kuerzel : '';
+    do {
+      _refreshPending = false;
+      [produkte, bestaende, buchungen, userKuerzel, lsAustraege, kunden, lsBestaende, bestellnotizen] = await Promise.all([
+        api.get('lager_produkte','order=name.asc,gebinde_kg.desc'),
+        api.get('lager_bestand','order=lagerort.asc'),
+        api.get('lager_buchungen','order=erstellt_am.desc&limit=500'),
+        api.get('lager_user_kuerzel','order=kuerzel.asc'),
+        api.get('lager_ls_austrag','order=erstellt_am.desc&limit=300'),
+        api.get('lager_kunden','order=name.asc'),
+        api.get('lager_ls_bestand','order=produkt_id.asc'),
+        api.get('lager_buchungen','menge_kg=eq.0&order=erstellt_am.desc&limit=1000')
+      ]);
+      // Eigenes Kürzel aktualisieren
+      const meins = userKuerzel.find(u => u.user_id === meineUserId);
+      meinKuerzel = meins ? meins.kuerzel : '';
+      // IMMER den aktuell sichtbaren Tab rendern (aktTab kann sich mid-fetch geändert haben)
+      renderTabById(aktTab);
+      updateUebersichtBadge();
+    } while (_refreshPending); // Tab-Wechsel während des Fetches → sofort frisch nachladen
     sync('ok');
-    // Nur den aktuell sichtbaren Tab neu rendern — kein Flackern anderer Tabs
-    renderTabById(aktTab);
-    updateUebersichtBadge();
   } catch(e) {
     sync('error');
     toast('❌ Aktualisierung fehlgeschlagen: ' + e.message);
@@ -622,7 +628,9 @@ function setTab(id, btn) {
   document.getElementById('view-' + id).classList.add('active');
   btn.classList.add('active');
   aktTab = id;
-  // Daten bei jedem Tab-Wechsel frisch aus Supabase laden
+  // Sofort mit aktuellem lokalem Stand rendern (Wechsel wirkt nie „leer"),
+  // dann frisch aus Supabase nachziehen.
+  renderTabById(id);
   refreshData();
 }
 function setFilter(f, btn) {
@@ -1349,7 +1357,7 @@ function renderDifferenz(filterQ='',nurMitDiff=false){
             ${prodsFor(name).map(p=>{const adKg=getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt'),lsP=getLsBestand(p.id)??0,diffP=adKg-lsP,diffCol=diffP>0?'#b45309':diffP<0?'#b91c1c':'#15803d';return`<div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:6px;align-items:center;background:#f8fafc;border:1px solid #e0f2fe;border-radius:8px;padding:8px 10px;"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px;color:#475569;white-space:nowrap;">${p.gebinde_kg}kg</span><div style="text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--surface2);">${adKg} kg</div><div style="font-size:9px;color:#94a3b8;">📦 G:${getMenge(p.id,'Garage')} W:${getMenge(p.id,'Werkstatt')}</div></div><div style="text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:#b91c1c;">${lsP} kg</div><div style="font-size:9px;color:#94a3b8;">📝 LS</div></div><div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:${diffCol};">${diffP>0?'+':''}${diffP}</div><div style="font-size:9px;color:#94a3b8;">Diff</div></div></div>`;}).join('')}
           </div>
         </div>
-        ${lsEntries.length?`<div style="padding:10px 14px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">LS Einträge</div>${lsEntries.map(ls=>{const lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;const m=Number(ls.menge_kg),pos=m>0;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;"><span style="font-family:'DM Mono',monospace;font-size:13px;color:${pos?'#15803d':'#b91c1c'};min-width:60px;">${pos?'+':''}${m} kg</span><span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#0f172a;">${ls.kunde}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;text-align:right;">${fmtDatum(ls.erstellt_am)}${lsDat?'<br>LS: '+lsDat:''}${ls.kuerzel?' · '+ls.kuerzel:''}</span></div>`;}).join('')}</div>`:''}
+        ${lsEntries.length?`<div style="padding:10px 14px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">LS Einträge</div>${lsEntries.map(ls=>{const lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;const m=Number(ls.menge_kg),pos=m>0;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;"><span style="font-family:'DM Mono',monospace;font-size:13px;color:${pos?'#15803d':'#b91c1c'};min-width:60px;">${pos?'+':''}${m} kg</span><span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#0f172a;">${ls.kunde}</span><span style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#94a3b8;text-align:right;line-height:1.25;">${fmtDatum(ls.erstellt_am)}${lsDat?'<br>LS: '+lsDat:''}${ls.kuerzel?' · '+ls.kuerzel:''}</span></div>`;}).join('')}</div>`:''}
       </div>`;
     }).join(''):'<div class="empty">Keine Einträge vorhanden</div>'}`;
   if(filterQ!==''){setTimeout(()=>{const sf=document.getElementById('differenzSuche');if(sf){sf.focus();sf.setSelectionRange(sf.value.length,sf.value.length);}},0);}
@@ -1406,7 +1414,7 @@ function renderHilfe(){
         <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">📝</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#b45309;">Innendienst</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Büro trägt Lieferscheine ein</div></div>
         <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">⚖️</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#15803d;">Diff = 0</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Alles stimmt überein ✅</div></div>
       </div>
-      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V17:</strong> LS-Korrektur (Rückbuchung) wird in „Letzte Einträge" und Differenz jetzt grün mit „+" angezeigt statt rot „−" · V16: Nachbestellen/Badge/Notizen pro Gebinde, Über-Entnahme blockiert, Bestellnotizen getrennt geladen, Dip Slide in Paketen · V15: Notiz-Fix manuelle Entnahme · V14: LS Austrag Fix · V13: Tab-Refresh</div>
+      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V19:</strong> Tab-Wechsel zeigt Änderungen jetzt sofort — Refresh wird bei laufendem Fetch vorgemerkt statt verworfen (kein zweites Tippen mehr nötig) · V18: Differenz-Meta doppelt groß & fett · V17: LS-Korrektur grün/„+" · V16: Notizen/Nachbestellen pro Gebinde, Über-Entnahme blockiert · V15: Notiz-Fix · V14: LS Austrag Fix · V13: Tab-Refresh</div>
     </div></div>`;
 }
 
