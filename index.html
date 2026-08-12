@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Lagerchemie V21</title>
+<title>Lagerchemie V24</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -202,7 +202,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=28').then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=29').then(reg => {
         setInterval(() => reg.update(), 60 * 60 * 1000);
         reg.addEventListener('updatefound', () => {
           const nw = reg.installing;
@@ -246,7 +246,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <script>
   const SUPABASE_URL = 'https://loekjdetgppmxnwnwxkm.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A';
-  const APP_VERSION = 'V21';
+  const APP_VERSION = 'V24';
   // Prefix für Bestellnotizen in lager_buchungen
   const BESTELL_PREFIX = '🗒️ Bestellnotiz: ';
   // Produkte, deren Kachel im Produkte-Tab in PAKETEN statt kg angezeigt wird
@@ -264,7 +264,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <div id="loginScreen" style="display:none; position:fixed; inset:0; background:#0369a1; z-index:9999; align-items:center; justify-content:center; padding:20px;">
   <div style="background:#fff; border-radius:16px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
     <div style="font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:24px; color:#0369a1; margin-bottom:4px;">
-      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span> <span id="loginVer" style="font-size:14px;color:#94a3b8;font-weight:400;">V21</span>
+      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span> <span id="loginVer" style="font-size:14px;color:#94a3b8;font-weight:400;">V24</span>
     </div>
     <div style="font-family:'Barlow',sans-serif; font-size:13px; color:#64748b; margin-bottom:24px;">Bitte anmelden um fortzufahren</div>
     <div style="margin-bottom:12px;">
@@ -282,7 +282,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 
 <!-- HEADER -->
 <div class="header">
-  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V21</span></div>
+  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V24</span></div>
   <div class="sync-dot" id="syncDot"></div>
   <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">LOGOUT</button>
 </div>
@@ -313,10 +313,45 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
     <div id="produktListe"></div>
   </div>
   <div class="view" id="view-uebersicht"><div id="uebersichtContent"></div></div>
-  <div class="view" id="view-log"><div id="logContent"></div></div>
-  <div class="view" id="view-verwaltung"><div id="verwaltungContent"></div></div>
-  <div class="view" id="view-ls"><div id="lsContent"></div></div>
-  <div class="view" id="view-differenz"><div id="differenzContent"></div></div>
+  <div class="view" id="view-log">
+    <div style="position:relative;margin:12px 0 10px;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span><input type="search" class="search-input" id="logSuche" oninput="renderLog()" placeholder="Produkt, Kürzel, Notiz…"></div>
+    <div id="logContent"></div>
+  </div>
+  <div class="view" id="view-verwaltung">
+    <div class="card" style="margin-top:12px;margin-bottom:10px;">
+      <div class="card-title">＋ Neues Produkt anlegen</div>
+      <div class="card-body">
+        <div class="r2">
+          <div class="f"><label>Produktname</label><input type="text" id="neu-name" placeholder="z.B. BZ 999" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-einheit')?.focus();}"></div>
+          <div class="f"><label>Einheit</label><select id="neu-einheit"><option value="kg">kg</option><option value="stk">Stück</option></select></div>
+        </div>
+        <div class="r2">
+          <div class="f"><label>Gebinde (Menge)</label><input type="number" id="neu-gebinde" placeholder="z.B. 20" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-richtwert')?.focus();}"></div>
+          <div class="f"><label>Richtwert (optional)</label><input type="number" id="neu-richtwert" placeholder="optional" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-startmenge')?.focus();}"></div>
+        </div>
+        <div class="f"><label>Startmenge (optional)</label><input type="number" id="neu-startmenge" placeholder="Inventur-Start" onkeydown="if(event.key==='Enter'){event.preventDefault();speichereNeuesProdukt();}"></div>
+        <button onclick="speichereNeuesProdukt()" class="btn-save" style="margin-top:6px;">＋ Anlegen</button>
+      </div>
+    </div>
+    <div style="position:relative;margin-bottom:10px;">
+      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
+      <input type="search" id="verwaltungSuche" oninput="renderVerwaltung()" placeholder="Produkt suchen…" style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;">
+    </div>
+    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">
+      ℹ️ <strong>SET</strong> = Ist-Bestand direkt setzen (Inventur) · <strong>RW</strong> = Richtwert · <strong>EINGANG</strong> = Anlieferung buchen
+    </div>
+    <div id="verwaltungContent"></div>
+  </div>
+  <div class="view" id="view-ls">
+    <div class="search-wrap" style="margin-top:12px;"><span class="search-icon">🔍</span><input type="search" class="search-input" id="lsSuche" oninput="renderLS()" placeholder="Produkt suchen…"></div>
+    <div id="lsContent"></div>
+  </div>
+  <div class="view" id="view-differenz">
+    <div class="search-wrap" style="margin-top:12px;"><span class="search-icon">🔍</span><input type="search" class="search-input" id="differenzSuche" oninput="renderDifferenz()" placeholder="Produkt suchen…"></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;"><button id="diffFilterBtn" data-active="0" onclick="this.dataset.active=this.dataset.active==='1'?'0':'1';renderDifferenz();" style="padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:#fff;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">⚠️ Nur mit Differenz</button></div>
+    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">ℹ️ <strong>Außendienst</strong> = Lagerbestand · <strong>Innendienst</strong> = LS-Bestand · Rot = Differenz</div>
+    <div id="differenzContent"></div>
+  </div>
   <div class="view" id="view-hilfe"><div id="hilfeContent"></div></div>
 </div>
 
@@ -328,9 +363,10 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
     <input type="hidden" id="edit-pid">
     <div class="f"><label>Produktname</label><input type="text" id="edit-name" placeholder="z.B. BZ 999" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('edit-gebinde')?.focus();}"></div>
     <div class="r2">
-      <div class="f"><label>Gebinde (kg)</label><input type="number" id="edit-gebinde" placeholder="z.B. 20" onkeydown="if(event.key==='Enter'){event.preventDefault();speichereProduktEdit();}"></div>
-      <div class="f"><label>Richtwert (kg)</label><input type="number" id="edit-richtwert" placeholder="optional"></div>
+      <div class="f"><label>Gebinde (Menge)</label><input type="number" id="edit-gebinde" placeholder="z.B. 20" onkeydown="if(event.key==='Enter'){event.preventDefault();speichereProduktEdit();}"></div>
+      <div class="f"><label>Einheit</label><select id="edit-einheit"><option value="kg">kg</option><option value="stk">Stück</option></select></div>
     </div>
+    <div class="f"><label>Richtwert (optional)</label><input type="number" id="edit-richtwert" placeholder="optional"></div>
     <button class="btn-save" onclick="speichereProduktEdit()">💾 Speichern</button>
   </div>
 </div>
@@ -423,8 +459,29 @@ const api = {
         method:'POST', extraHeaders:{ Prefer:'return=minimal' }, body: JSON.stringify(data)
       });
     }
+  },
+
+  // Postgres-Funktion (RPC) aufrufen — atomare Buchungen serverseitig (V22)
+  async rpc(fn, params) {
+    const r = await this._fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+      method:'POST', body: JSON.stringify(params)
+    });
+    const t = await r.text();
+    return t ? JSON.parse(t) : null;
   }
 };
+
+// Fehlermeldung aus PostgREST-JSON extrahieren (z.B. raise exception aus RPCs)
+function errMsg(e) {
+  try {
+    const j = JSON.parse(e.message);
+    if (j.code === 'PGRST202') return 'Server-Funktion fehlt — bitte lager_v22.sql im Supabase SQL Editor ausführen.';
+    return j.message || e.message;
+  } catch(_) { return e.message; }
+}
+
+// ── Doppel-Tap-Schutz: verhindert doppelte Buchungen bei schnellem Tippen ──
+let _busy = false;
 
 // ══════════════════════════════════════════════════════════
 // DATUM HELFER
@@ -438,6 +495,11 @@ function fmtDatumKurz(isoStr) {
   return new Date(isoStr).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
 }
 const norm = s => s.toLowerCase().replace(/[\s\-\._]/g,'');
+// Einheit eines Produkts ('kg' oder 'Stk') — V24. Alle Varianten (Gebindegrößen)
+// desselben Namens teilen dieselbe Einheit; ein Produkt ist entweder gewichts-
+// oder stückbasiert, nie beides.
+function einheitProd(pid){ const p=produkte.find(p=>p.id===pid); return (p&&p.einheit==='stk')?'Stk':'kg'; }
+function einheitName(name){ const p=prodsFor(name)[0]; return (p&&p.einheit==='stk')?'Stk':'kg'; }
 // Produkt in Paketen statt kg anzeigen? (reine Display-Umschaltung, siehe PAKET_ANZEIGE)
 function zeigtPakete(name){ const n = norm(name); return PAKET_ANZEIGE.some(x => n.includes(norm(x))); }
 
@@ -668,28 +730,28 @@ function getLsBestandName(name) { const ids = prodsFor(name).map(p => p.id); con
 // BUCHEN
 // ══════════════════════════════════════════════════════════
 async function buchen(pid, lo, delta, notiz='') {
-  const alt = getMenge(pid, lo);
-  // Über-Entnahme hart blockieren statt still auf 0 zu clampen (sonst lügt das Log)
-  if (Number(delta) < 0 && alt + Number(delta) < 0) {
-    const pname = produkte.find(p => p.id===pid)?.name||'';
-    toast(`⛔ Nur ${alt} kg in ${lo} — Entnahme von ${Math.abs(delta)} kg nicht möglich (${pname})`);
-    return false;
-  }
+  if (_busy) return false;
+  _busy = true;
   sync('syncing');
   try {
-    const neu = alt + Number(delta);
-    await api.upsert('lager_bestand', { produkt_id: pid, lagerort: lo, menge_kg: neu, aktualisiert_am: new Date().toISOString() });
-    const bres = await api.post('lager_buchungen', { produkt_id: pid, lagerort: lo, menge_kg: delta, notiz: notiz||null, kuerzel: meinKuerzel||null });
-    const idx = bestaende.findIndex(b => b.produkt_id===pid && b.lagerort===lo);
+    // Atomar auf dem Server: Update + Über-Entnahme-Prüfung + Log in einer Transaktion.
+    // Rückgabe = komplette Log-Zeile inkl. bestand_nach.
+    const b = await api.rpc('rpc_buche_bestand', {
+      p_produkt_id: pid, p_lagerort: lo, p_delta: Number(delta),
+      p_notiz: notiz || null, p_kuerzel: meinKuerzel || null
+    });
+    const neu = Number(b.bestand_nach);
+    const idx = bestaende.findIndex(x => x.produkt_id===pid && x.lagerort===lo);
     if (idx>=0) bestaende[idx].menge_kg = neu; else bestaende.push({ produkt_id:pid, lagerort:lo, menge_kg:neu });
-    buchungen.unshift(bres && bres[0] ? bres[0] : { produkt_id:pid, lagerort:lo, menge_kg:delta, notiz, kuerzel:meinKuerzel||null, erstellt_am:new Date().toISOString() });
+    buchungen.unshift(b);
     sync('ok');
     renderProdukte(); renderUebersicht(); renderLog();
     updateUebersichtBadge();
     const pname = produkte.find(p => p.id===pid)?.name||'';
-    toast(`${delta>0?'➕':'➖'} ${Math.abs(delta)} kg · ${pname} · ${lo}`);
+    toast(`${delta>0?'➕':'➖'} ${Math.abs(delta)} ${einheitProd(pid)} · ${pname} · ${lo} → ${neu} ${einheitProd(pid)}`);
     return true;
-  } catch(e) { sync('error'); toast('❌ ' + e.message); return false; }
+  } catch(e) { sync('error'); toast('⛔ ' + errMsg(e)); return false; }
+  finally { _busy = false; }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -721,22 +783,23 @@ function renderProdukte() {
     const anyLow50 = prodsFor(name).some(p => gebPct(p) < 0.5);
     const barCls = anyLow30 ? 'bl' : anyLow50 ? 'bw' : '';
     const cardCls = anyLow30 ? 'pc-low' : anyLow50 ? 'pc-warn' : '';
-    const pakete = zeigtPakete(name); // Display in Paketen statt kg (nur konfigurierte Produkte)
+    const einheit = einheitName(name); // 'kg' oder 'Stk'
+    const pakete = einheit==='kg' && zeigtPakete(name); // Pakete-Umschaltung nur für kg-Produkte sinnvoll
     const pkgTxt = (kg,gb) => { if(!gb) return '–'; const v=kg/gb; return Number.isInteger(v)?String(v):v.toFixed(1); };
     const chips = prodsFor(name).flatMap(p => ['Garage','Werkstatt'].map(lo => {
       const kg = getMenge(p.id, lo); if (!kg) return '';
       const rwP = richtwertProd(p.id);
-      const wert = pakete ? `<strong>${pkgTxt(kg,p.gebinde_kg)} Pkg</strong>` : `<strong>${kg}kg</strong>`;
-      return `<span class="lchip ${lo.toLowerCase()}"><span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> ${wert}${rwP?` · <span style="opacity:0.5;font-size:10px;">RW ${rwP}kg</span>`:''}</span>`;
+      const wert = pakete ? `<strong>${pkgTxt(kg,p.gebinde_kg)} Pkg</strong>` : `<strong>${kg}${einheit}</strong>`;
+      return `<span class="lchip ${lo.toLowerCase()}"><span class="lchip-dot"></span>${lo==='Garage'?'🔵':'🟡'} <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}${einheit}</span> ${wert}${rwP?` · <span style="opacity:0.5;font-size:10px;">RW ${rwP}${einheit}</span>`:''}</span>`;
     })).join('');
     const rows = prodsFor(name).flatMap(p => ['Garage','Werkstatt'].map(lo => {
       const kg = getMenge(p.id, lo), kan = p.gebinde_kg ? (kg/p.gebinde_kg).toFixed(1) : '–';
       const sid = `${iqq(p.id)}_${lo}`;
       const mengeDisplay = pakete
-        ? `<div class="menge-display"><div class="menge-kg">${pkgTxt(kg,p.gebinde_kg)} <span style="font-size:14px;color:var(--muted)">Pkg</span></div><div class="menge-sub">${kg} kg · à ${p.gebinde_kg} kg/Paket</div></div>`
-        : `<div class="menge-display"><div class="menge-kg">${kg} <span style="font-size:14px;color:var(--muted)">kg</span></div><div class="menge-sub">${kan} Gebinde à ${p.gebinde_kg} kg</div></div>`;
+        ? `<div class="menge-display"><div class="menge-kg">${pkgTxt(kg,p.gebinde_kg)} <span style="font-size:14px;color:var(--muted)">Pkg</span></div><div class="menge-sub">${kg} ${einheit} · à ${p.gebinde_kg} ${einheit}/Paket</div></div>`
+        : `<div class="menge-display"><div class="menge-kg">${kg} <span style="font-size:14px;color:var(--muted)">${einheit}</span></div><div class="menge-sub">${kan} Gebinde à ${p.gebinde_kg} ${einheit}</div></div>`;
       return `<div class="gebinde-row">
-        <div class="gebinde-top"><span class="gebinde-size-label">${p.gebinde_kg} kg Gebinde</span><span class="lort-badge ${lo.toLowerCase()}">${lo==='Garage'?'🔵':'🟡'} ${lo}</span></div>
+        <div class="gebinde-top"><span class="gebinde-size-label">${p.gebinde_kg} ${einheit} Gebinde</span><span class="lort-badge ${lo.toLowerCase()}">${lo==='Garage'?'🔵':'🟡'} ${lo}</span></div>
         <div class="gebinde-mid">
           ${mengeDisplay}
           <div class="counter-group">
@@ -756,7 +819,7 @@ function renderProdukte() {
       <div class="pc-bar ${barCls}"></div>
       <div class="pc-header" onclick="this.parentElement.classList.toggle('open')">
         <div class="pc-name">${name}</div>
-        <div><div class="pc-total-kg">${gkg} kg</div>${rw?`<div class="pc-total-rw">Richtwert: ${rw} kg</div>`:''}</div>
+        <div><div class="pc-total-kg">${gkg} ${einheit}</div>${rw?`<div class="pc-total-rw">Richtwert: ${rw} ${einheit}</div>`:''}</div>
         <span class="chev">▼</span>
       </div>
       <div class="chip-row">${chips||'<span style="font-size:12px;color:#94a3b8">Noch kein Bestand – nur über Verwaltung einbuchen</span>'}</div>
@@ -791,13 +854,19 @@ async function mb(pid,lo,sid,gebinde) {
 // ══════════════════════════════════════════════════════════
 function renderUebersicht() {
   const el = document.getElementById('uebersichtContent');
-  const gKg = bestaende.filter(b=>b.lagerort==='Garage').reduce((s,b)=>s+Number(b.menge_kg),0);
-  const wKg = bestaende.filter(b=>b.lagerort==='Werkstatt').reduce((s,b)=>s+Number(b.menge_kg),0);
+  // Summen getrennt nach Einheit (V24) — kg und Stück dürfen nie zusammengezählt werden
+  const kgPids = new Set(produkte.filter(p=>p.einheit!=='stk').map(p=>p.id));
+  const stkPids = new Set(produkte.filter(p=>p.einheit==='stk').map(p=>p.id));
+  const gKg = bestaende.filter(b=>b.lagerort==='Garage'&&kgPids.has(b.produkt_id)).reduce((s,b)=>s+Number(b.menge_kg),0);
+  const wKg = bestaende.filter(b=>b.lagerort==='Werkstatt'&&kgPids.has(b.produkt_id)).reduce((s,b)=>s+Number(b.menge_kg),0);
+  const gStk = bestaende.filter(b=>b.lagerort==='Garage'&&stkPids.has(b.produkt_id)).reduce((s,b)=>s+Number(b.menge_kg),0);
+  const wStk = bestaende.filter(b=>b.lagerort==='Werkstatt'&&stkPids.has(b.produkt_id)).reduce((s,b)=>s+Number(b.menge_kg),0);
   const niedrigG = niedrigeGebinde();
 
   let nachbestellenHTML = '';
   if (niedrigG.length) {
     const rows = niedrigG.map(p => {
+      const einheitP = einheitProd(p.id);
       const kg=getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt'), rw=richtwertProd(p.id), pct=Math.round(kg/rw*100);
       const aktiveNotiz = getAktiveBestellnotiz(p.id);
       const sid = 'bk_' + String(p.id).replace(/[^a-zA-Z0-9]/g,'_');
@@ -821,8 +890,8 @@ function renderUebersicht() {
 
       return `<div class="bestell-row">
         <div class="bestell-header">
-          <span class="bestell-name">${p.name} <span style="font-size:11px;color:#94a3b8;font-weight:400">· ${p.gebinde_kg} kg Gebinde</span></span>
-          <span class="bestell-kg">${kg} kg <span style="color:#94a3b8;font-size:10px;font-weight:400">/ ${rw} kg (${pct}%)</span></span>
+          <span class="bestell-name">${p.name} <span style="font-size:11px;color:#94a3b8;font-weight:400">· ${p.gebinde_kg} ${einheitP} Gebinde</span></span>
+          <span class="bestell-kg">${kg} ${einheitP} <span style="color:#94a3b8;font-size:10px;font-weight:400">/ ${rw} ${einheitP} (${pct}%)</span></span>
         </div>
         ${aktivBlock}
         <div class="bestell-input-row">
@@ -857,8 +926,8 @@ function renderUebersicht() {
   el.innerHTML = `
     <div class="sl" style="margin-top:14px">Lagerübersicht</div>
     <div class="stat-grid">
-      <div class="stat-card" style="border-color:#7dd3fc"><div class="stat-label">🔵 Garage</div><div class="stat-val" style="color:var(--surface2)">${gKg}</div><div class="stat-sub">kg gesamt</div></div>
-      <div class="stat-card" style="border-color:#fcd34d"><div class="stat-label">🟡 Werkstatt</div><div class="stat-val" style="color:var(--warn)">${wKg}</div><div class="stat-sub">kg gesamt</div></div>
+      <div class="stat-card" style="border-color:#7dd3fc"><div class="stat-label">🔵 Garage</div><div class="stat-val" style="color:var(--surface2)">${gKg}</div><div class="stat-sub">kg gesamt${gStk>0?` · ${gStk} Stk`:''}</div></div>
+      <div class="stat-card" style="border-color:#fcd34d"><div class="stat-label">🟡 Werkstatt</div><div class="stat-val" style="color:var(--warn)">${wKg}</div><div class="stat-sub">kg gesamt${wStk>0?` · ${wStk} Stk`:''}</div></div>
       <div class="stat-card"><div class="stat-label">📦 Produkte</div><div class="stat-val">${uniqueNames().length}</div><div class="stat-sub">erfasst</div></div>
       <div class="stat-card" style="${niedrigG.length?'border-color:#fca5a5':''}"><div class="stat-label">⚠️ Nachbestellen</div><div class="stat-val" style="color:${niedrigG.length?'var(--err)':'var(--ok)'}">${niedrigG.length}</div><div class="stat-sub">Gebinde unter 50%</div></div>
     </div>
@@ -866,10 +935,10 @@ function renderUebersicht() {
     <div class="sl">Alle Produkte</div>
     <div class="card"><div class="card-body">
       ${uniqueNames().map(name=>{
-        const kg=gesamtKg(name);
+        const kg=gesamtKg(name), einheitN=einheitName(name);
         const isLow=prodsFor(name).some(p=>{const r=richtwertProd(p.id);return r&&(getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt'))<r*0.5;});
         const gk=loKg(name,'Garage'),wk=loKg(name,'Werkstatt');
-        return `<div class="rr"><div class="rl">${name}<div style="margin-top:2px;display:flex;gap:8px">${gk>0?`<span style="font-size:10px;color:var(--surface2)">🔵 ${gk} kg</span>`:''}${wk>0?`<span style="font-size:10px;color:var(--warn)">🟡 ${wk} kg</span>`:''}</div></div><span class="rv ${isLow?'err':''}">${kg} kg</span></div>`;
+        return `<div class="rr"><div class="rl">${name}<div style="margin-top:2px;display:flex;gap:8px">${gk>0?`<span style="font-size:10px;color:var(--surface2)">🔵 ${gk} ${einheitN}</span>`:''}${wk>0?`<span style="font-size:10px;color:var(--warn)">🟡 ${wk} ${einheitN}</span>`:''}</div></div><span class="rv ${isLow?'err':''}">${kg} ${einheitN}</span></div>`;
       }).join('')}
     </div></div>`;
 
@@ -879,7 +948,8 @@ function renderUebersicht() {
 // ══════════════════════════════════════════════════════════
 // LOG
 // ══════════════════════════════════════════════════════════
-function renderLog(filterQ='') {
+function renderLog(filterQ) {
+  filterQ = document.getElementById('logSuche')?.value || '';
   const el = document.getElementById('logContent');
   let alleBuchungen = [
     ...buchungen.map(b => ({ ...b, _typ: 'AD' })),
@@ -895,11 +965,9 @@ function renderLog(filterQ='') {
   }
   alleBuchungen = alleBuchungen.slice(0, 300);
 
-  const searchBar = `<div style="position:relative;margin:12px 0 10px;"><span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span><input type="search" class="search-input" id="logSuche" value="${filterQ}" oninput="renderLog(this.value)" placeholder="Produkt, Kürzel, Notiz…" data-focus="1"></div>`;
+  if (!alleBuchungen.length) { el.innerHTML = '<div class="empty">Keine Einträge gefunden</div>'; return; }
 
-  if (!alleBuchungen.length) { el.innerHTML = searchBar + '<div class="empty">Keine Einträge gefunden</div>'; return; }
-
-  el.innerHTML = searchBar + '<div>' + alleBuchungen.map(b => {
+  el.innerHTML = '<div>' + alleBuchungen.map(b => {
     const p = produkte.find(p => p.id === b.produkt_id);
     const menge = Number(b.menge_kg);
     const istNotiz = b._typ === 'AD' && b.notiz && b.notiz.startsWith(BESTELL_PREFIX);
@@ -907,16 +975,17 @@ function renderLog(filterQ='') {
     const pos = menge > 0;
 
     let signHtml, signClass, lortStyle, lortLabel, lortClass;
+    const einheitB = einheitProd(b.produkt_id);
     if (istNotiz) {
       signHtml = '🗒️<br><span style="font-size:9px;">Notiz</span>';
       signClass = 'note';
       lortLabel = 'Bestellnotiz'; lortClass = 'notiz'; lortStyle = '';
     } else if (istLS) {
-      signHtml = `${pos?'+':''}${menge}<br><span style="font-size:10px;color:var(--muted)">kg</span>`;
+      signHtml = `${pos?'+':''}${menge}<br><span style="font-size:10px;color:var(--muted)">${einheitB}</span>`;
       signClass = pos ? 'pos' : 'neg';
       lortLabel = 'LS'; lortClass = ''; lortStyle = 'background:#fffbeb;color:#b45309;border:none;';
     } else {
-      signHtml = `${pos?'+':''}${menge}<br><span style="font-size:10px;color:var(--muted)">kg</span>`;
+      signHtml = `${pos?'+':''}${menge}<br><span style="font-size:10px;color:var(--muted)">${einheitB}</span>`;
       signClass = pos ? 'pos' : 'neg';
       lortLabel = b.lagerort||''; lortClass = b.lagerort ? b.lagerort.toLowerCase() : ''; lortStyle = '';
     }
@@ -926,17 +995,21 @@ function renderLog(filterQ='') {
       : (!istLS && b.notiz ? ' · ' + b.notiz : '');
     const lsDat = istLS && b.ls_datum ? ' · LS: ' + fmtDatumKurz(b.ls_datum) : '';
     const kundeInfo = istLS && b.kunde ? ' · ' + b.kunde : '';
+    // Bestand NACH der Buchung (V22): AD = Gebinde am Lagerort, LS = LS-Bestand des Gebindes.
+    // Historisch fixiert in der DB — so sieht man, ab welcher Buchung es nicht mehr stimmte.
+    // Alte Zeilen (vor V22) haben keinen Wert → nichts anzeigen.
+    const nachWert = istNotiz ? null : (istLS ? b.ls_bestand_nach : b.bestand_nach);
+    const nachInfo = (nachWert!==null&&nachWert!==undefined)
+      ? ` · <strong style="color:#0369a1;white-space:nowrap;">📦 ${Number(nachWert)} ${einheitB} danach</strong>` : '';
 
     return `<div class="log-item" style="${istLS?'border-color:#fcd34d;':''} ${istNotiz?'border-color:#c4b5fd;background:#faf5ff;':''}">
       <div class="log-sign ${signClass}">${signHtml}</div>
       <div class="log-info">
         <div class="log-prod">${p?p.name:'–'} <span class="lort-sm ${lortClass}" style="${lortStyle}">${lortLabel}</span></div>
-        <div class="log-meta">${fmtDatum(b.erstellt_am)}${b.kuerzel?' · <strong>'+b.kuerzel+'</strong>':''}${kundeInfo}${lsDat}${notizAnzeige?(' · '+notizAnzeige):''}</div>
+        <div class="log-meta">${fmtDatum(b.erstellt_am)}${b.kuerzel?' · <strong>'+b.kuerzel+'</strong>':''}${kundeInfo}${lsDat}${notizAnzeige?(' · '+notizAnzeige):''}${nachInfo}</div>
       </div>
     </div>`;
   }).join('') + '</div>';
-
-  setTimeout(() => { const sf = document.getElementById('logSuche'); if (sf && filterQ) { sf.focus(); sf.setSelectionRange(sf.value.length, sf.value.length); } }, 0);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -949,37 +1022,18 @@ function applyUpdate() { navigator.serviceWorker.getRegistration().then(reg => {
 // ══════════════════════════════════════════════════════════
 // VERWALTUNG
 // ══════════════════════════════════════════════════════════
-function renderVerwaltung(filterQ='') {
+function renderVerwaltung(filterQ) {
   const activeId = document.activeElement?.id;
+  filterQ = document.getElementById('verwaltungSuche')?.value || '';
   const el = document.getElementById('verwaltungContent');
   const names = uniqueNames().filter(n => !filterQ || norm(n).includes(norm(filterQ)));
 
   el.innerHTML = `
-    <div class="card" style="margin-top:12px;margin-bottom:10px;">
-      <div class="card-title">＋ Neues Produkt anlegen</div>
-      <div class="card-body">
-        <div class="r2">
-          <div class="f"><label>Produktname</label><input type="text" id="neu-name" placeholder="z.B. BZ 999" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-gebinde')?.focus();}"></div>
-          <div class="f"><label>Gebinde (kg)</label><input type="number" id="neu-gebinde" placeholder="z.B. 20" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-richtwert')?.focus();}"></div>
-        </div>
-        <div class="r2">
-          <div class="f"><label>Richtwert (kg, optional)</label><input type="number" id="neu-richtwert" placeholder="optional" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('neu-startmenge')?.focus();}"></div>
-          <div class="f"><label>Startmenge (kg, optional)</label><input type="number" id="neu-startmenge" placeholder="Inventur-Start" onkeydown="if(event.key==='Enter'){event.preventDefault();speichereNeuesProdukt();}"></div>
-        </div>
-        <button onclick="speichereNeuesProdukt()" class="btn-save" style="margin-top:6px;">＋ Anlegen</button>
-      </div>
-    </div>
-    <div style="position:relative;margin-bottom:10px;">
-      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">🔍</span>
-      <input type="search" id="verwaltungSuche" value="${filterQ}" oninput="renderVerwaltung(this.value)" placeholder="Produkt suchen…" style="width:100%;background:#fff;border:2px solid #7dd3fc;border-radius:8px;padding:11px 14px 11px 38px;font-family:'Barlow',sans-serif;font-size:15px;color:#0f172a;outline:none;" data-focus="1">
-    </div>
-    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">
-      ℹ️ <strong>SET</strong> = Ist-Bestand direkt setzen (Inventur) · <strong>RW</strong> = Richtwert · <strong>EINGANG</strong> = Anlieferung buchen
-    </div>
     ${names.map(name => {
-      const prods=prodsFor(name), gkg=gesamtKg(name), rw=richtwert(name), pct=rw?gkg/rw:1;
+      const prods=prodsFor(name), gkg=gesamtKg(name), rw=richtwert(name), pct=rw?gkg/rw:1, einheitN=einheitName(name);
       const barColor=pct<0.3?'#b91c1c':pct<0.5?'#b45309':'#7dd3fc';
       const zeilen=prods.map(p=>{
+        const einheitP=einheitProd(p.id);
         const rwP=richtwertProd(p.id);
         const rwsid=('rw_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
         const einsid=('ein_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
@@ -987,14 +1041,14 @@ function renderVerwaltung(filterQ='') {
           const kg=getMenge(p.id,lo), vsid=(p.id+'_'+lo).replace(/[^a-zA-Z0-9]/g,'_');
           return `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid #f1f5f9;">
             <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;padding:2px 8px;border-radius:4px;white-space:nowrap;min-width:80px;${lo==='Garage'?'background:#e0f2fe;color:#0369a1':'background:#fffbeb;color:#b45309'}">${lo==='Garage'?'🔵':'🟡'} ${lo}</span>
-            <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;flex:1;">${kg} <span style="font-size:11px;color:#64748b">kg</span></div>
-            <input type="number" id="ist_${vsid}" placeholder="kg setzen" style="width:85px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:6px 8px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;text-align:right;">
+            <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;flex:1;">${kg} <span style="font-size:11px;color:#64748b">${einheitP}</span></div>
+            <input type="number" id="ist_${vsid}" placeholder="${einheitP} setzen" style="width:85px;background:#f0f9ff;border:1px solid #7dd3fc;border-radius:6px;padding:6px 8px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;text-align:right;">
             <button onclick="bestaetigeSet('${p.id}','${lo}','${vsid}')" style="background:#475569;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">SET</button>
           </div>`;
         }).join('');
         return `<div style="border-bottom:1px solid #e0f2fe;">
           <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f8fafc;flex-wrap:wrap;">
-            <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;color:#475569;flex:1;min-width:80px;">${p.gebinde_kg} KG GEBINDE</span>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;color:#475569;flex:1;min-width:80px;">${p.gebinde_kg} ${einheitP.toUpperCase()} GEBINDE</span>
             <div style="display:flex;align-items:center;gap:4px;">
               <span style="font-size:11px;color:#64748b;font-family:'DM Mono',monospace;">RW:</span>
               <input type="number" id="${rwsid}" value="${rwP||''}" placeholder="–" style="width:65px;background:#fff;border:1px solid #7dd3fc;border-radius:6px;padding:5px 7px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;text-align:right;">
@@ -1004,7 +1058,7 @@ function renderVerwaltung(filterQ='') {
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#f0fdf4;border:2px solid #86efac;border-radius:8px;padding:8px 10px;margin-top:4px;">
               <span style="font-size:13px;color:#15803d;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.5px;">📦 EINGANG</span>
-              <input type="number" id="${einsid}" placeholder="kg" style="width:70px;background:#fff;border:1px solid #86efac;border-radius:6px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:14px;color:#0f172a;outline:none;text-align:right;">
+              <input type="number" id="${einsid}" placeholder="${einheitP}" style="width:70px;background:#fff;border:1px solid #86efac;border-radius:6px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:14px;color:#0f172a;outline:none;text-align:right;">
               <select id="${einsid}_lo" style="background:#fff;border:1px solid #86efac;border-radius:6px;padding:7px 8px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#15803d;outline:none;"><option value="Garage">🔵 Garage</option><option value="Werkstatt">🟡 Werkstatt</option></select>
               <input type="text" id="${einsid}_ls" placeholder="LS-Nr. (optional)" style="width:130px;background:#fff;border:1px solid #86efac;border-radius:6px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:13px;color:#0f172a;outline:none;">
               <button onclick="buchen_eingang('${p.id}','${einsid}')" style="background:#15803d;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.5px;cursor:pointer;flex:1;min-width:60px;">＋ Einbuchen</button>
@@ -1017,7 +1071,7 @@ function renderVerwaltung(filterQ='') {
         <div style="height:3px;background:${barColor};"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f0f9ff;border-bottom:1px solid #e0f2fe;">
           <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#0f172a;">${name}</div>
-          <div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:500;">${gkg} kg</div>${rw?`<div style="font-size:10px;color:#64748b">Richtwert: ${rw} kg</div>`:''}</div>
+          <div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:15px;font-weight:500;">${gkg} ${einheitN}</div>${rw?`<div style="font-size:10px;color:#64748b">Richtwert: ${rw} ${einheitN}</div>`:''}</div>
         </div>
         ${zeilen}
       </div>`;
@@ -1034,6 +1088,8 @@ function renderVerwaltung(filterQ='') {
       </div></div>
     </div></div>`;
 
+  // Fokus-Restore gilt hier nur noch Zeilen-Feldern (SET/RW/EINGANG) — das Suchfeld
+  // selbst liegt seit V23 außerhalb dieses Bereichs und verliert nie mehr den Fokus.
   setTimeout(() => {
     if (activeId) { const el2=document.getElementById(activeId); if (el2&&(el2.tagName==='INPUT'||el2.tagName==='SELECT')) { el2.focus(); if (el2.type==='search'||el2.type==='text') el2.setSelectionRange(el2.value.length,el2.value.length); } }
   }, 0);
@@ -1041,23 +1097,25 @@ function renderVerwaltung(filterQ='') {
 
 async function speichereNeuesProdukt() {
   const name=document.getElementById('neu-name').value.trim(), geb=parseInt(document.getElementById('neu-gebinde').value);
+  const einheit=document.getElementById('neu-einheit')?.value||'kg';
   const rw=parseFloat(document.getElementById('neu-richtwert').value)||null, start=parseFloat(document.getElementById('neu-startmenge')?.value)||null;
   if(!name||!geb){toast('⚠️ Name und Gebindegröße erforderlich');return;}
   sync('syncing');
   try {
-    const res=await api.post('lager_produkte',{name,gebinde_kg:geb,richtwert_kg:rw});
+    const res=await api.post('lager_produkte',{name,gebinde_kg:geb,richtwert_kg:rw,einheit});
     const np=res[0]; produkte.push(np); produkte.sort((a,b)=>a.name.localeCompare(b.name));
     if(start&&start>0){
-      await api.upsert('lager_bestand',{produkt_id:np.id,lagerort:'Garage',menge_kg:start,aktualisiert_am:new Date().toISOString()});
-      const bres=await api.post('lager_buchungen',{produkt_id:np.id,lagerort:'Garage',menge_kg:start,notiz:'Inventur/Start',kuerzel:meinKuerzel||null});
+      // Startmenge über die Inventur-RPC: atomar AD + LS + Log (mit bestand_nach)
+      const rres=await api.rpc('rpc_inventur_set',{p_produkt_id:np.id,p_lagerort:'Garage',p_val:start,p_kuerzel:meinKuerzel||null});
       bestaende.push({produkt_id:np.id,lagerort:'Garage',menge_kg:start});
-      buchungen.unshift(bres[0]);
-      await lsBestandSetzen(np.id,start);
+      lsBestaende.push({produkt_id:np.id,menge_kg:Number(rres.ls_neu)});
+      if(rres.buchung) buchungen.unshift(rres.buchung);
     }
     sync('ok');
     ['neu-name','neu-gebinde','neu-richtwert','neu-startmenge'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const eSel=document.getElementById('neu-einheit'); if(eSel) eSel.value='kg';
     renderProdukte();renderUebersicht();renderVerwaltung();renderLS();renderDifferenz();updateUebersichtBadge();
-    toast('✅ '+name+(start?` — ${start} kg in Garage`:' angelegt'));
+    toast('✅ '+name+(start?` — ${start} ${einheitProd(np.id)} in Garage`:' angelegt'));
   }catch(e){sync('error');toast('❌ '+e.message);}
 }
 
@@ -1074,34 +1132,39 @@ async function loescheKuerzel(id) {
   catch(e){sync('error');toast('❌ '+e.message);}
 }
 async function buchen_eingang(pid, einsid) {
+  if (_busy) return;
+  _busy = true;
   const inp=document.getElementById(einsid), loSel=document.getElementById(einsid+'_lo'), lsNrInp=document.getElementById(einsid+'_ls');
   const menge=parseFloat(inp.value), zielLo=loSel?loSel.value:'Garage', lsNr=lsNrInp?lsNrInp.value.trim():'';
-  if(isNaN(menge)||menge<=0){toast('⚠️ Bitte Menge eingeben');return;}
+  if(isNaN(menge)||menge<=0){toast('⚠️ Bitte Menge eingeben');_busy=false;return;}
   sync('syncing');
   try {
-    await eintragEingang(pid,menge,zielLo,lsNr);
+    const b=await eintragEingang(pid,menge,zielLo,lsNr);
     inp.value=''; if(lsNrInp) lsNrInp.value='';
     sync('ok');
     renderVerwaltung(document.getElementById('verwaltungSuche')?.value||'');
     renderProdukte();renderUebersicht();renderDifferenz();renderLog();updateUebersichtBadge();
     const pname=produkte.find(p=>p.id===pid)?.name||'';
-    toast(`📦 Eingang: +${menge} kg ${pname}${lsNr?' · LS: '+lsNr:''}`);
-  }catch(e){sync('error');toast('❌ '+e.message);}
+    toast(`📦 Eingang: +${menge} ${einheitProd(pid)} ${pname}${lsNr?' · LS: '+lsNr:''} → ${Number(b.bestand_nach)} ${einheitProd(pid)}`);
+  }catch(e){sync('error');toast('⛔ '+errMsg(e));}
+  finally { _busy = false; }
 }
 function editiereProdukt(pid) {
   const p=produkte.find(p=>p.id===pid); if(!p) return;
   document.getElementById('edit-pid').value=pid; document.getElementById('edit-name').value=p.name;
   document.getElementById('edit-gebinde').value=p.gebinde_kg; document.getElementById('edit-richtwert').value=p.richtwert_kg||'';
+  const eSel=document.getElementById('edit-einheit'); if(eSel) eSel.value=(p.einheit==='stk')?'stk':'kg';
   document.getElementById('modalEdit').classList.add('open');
 }
 async function speichereProduktEdit() {
   const pid=document.getElementById('edit-pid').value, name=document.getElementById('edit-name').value.trim();
   const geb=parseInt(document.getElementById('edit-gebinde').value), rw=parseFloat(document.getElementById('edit-richtwert').value)||null;
+  const einheit=document.getElementById('edit-einheit')?.value||'kg';
   if(!name||!geb){toast('⚠️ Name und Gebindegröße erforderlich');return;}
   sync('syncing');
   try {
-    await api.patch('lager_produkte',`id=eq.${pid}`,{name,gebinde_kg:geb,richtwert_kg:rw});
-    const p=produkte.find(p=>p.id===pid); if(p){p.name=name;p.gebinde_kg=geb;p.richtwert_kg=rw;}
+    await api.patch('lager_produkte',`id=eq.${pid}`,{name,gebinde_kg:geb,richtwert_kg:rw,einheit});
+    const p=produkte.find(p=>p.id===pid); if(p){p.name=name;p.gebinde_kg=geb;p.richtwert_kg=rw;p.einheit=einheit;}
     produkte.sort((a,b)=>a.name.localeCompare(b.name)); sync('ok');
     document.getElementById('modalEdit').classList.remove('open');
     renderProdukte();renderVerwaltung();renderUebersicht();updateUebersichtBadge();
@@ -1126,38 +1189,36 @@ async function speichereRichtwert(pid, sid) {
     await api.patch('lager_produkte',`id=eq.${pid}`,{richtwert_kg:val});
     const p=produkte.find(p=>p.id===pid); if(p) p.richtwert_kg=val;
     sync('ok'); renderVerwaltung(document.getElementById('verwaltungSuche')?.value||''); renderUebersicht(); updateUebersichtBadge();
-    toast(`✅ Richtwert: ${val?val+' kg':'entfernt'}`);
+    toast(`✅ Richtwert: ${val?val+' '+einheitProd(pid):'entfernt'}`);
   }catch(e){sync('error');toast('❌ '+e.message);}
 }
 function bestaetigeSet(pid, lo, vsid) {
   const val=parseFloat(document.getElementById('ist_'+vsid)?.value);
-  if(isNaN(val)||val<0){toast('⚠️ Bitte gültigen kg-Wert eingeben');return;}
+  if(isNaN(val)||val<0){toast('⚠️ Bitte gültigen Wert eingeben');return;}
   const pname=produkte.find(p=>p.id===pid)?.name||'';
-  if(!confirm(`Lagerbestand wirklich überschreiben?\n\n${pname} · ${lo}\nNeuer Wert: ${val} kg\n\nSetzt Lager UND LS-Bestand neu.`)) return;
+  if(!confirm(`Lagerbestand wirklich überschreiben?\n\n${pname} · ${lo}\nNeuer Wert: ${val} ${einheitProd(pid)}\n\nSetzt Lager UND LS-Bestand neu.`)) return;
   setzeIstBestand(pid,lo,vsid);
 }
 async function setzeIstBestand(pid, lo, vsid) {
+  if (_busy) return;
+  _busy = true;
   const val=parseFloat(document.getElementById('ist_'+vsid)?.value);
-  if(isNaN(val)||val<0) return;
+  if(isNaN(val)||val<0){_busy=false;return;}
   sync('syncing');
   try {
-    const alt=getMenge(pid,lo), delta=val-alt;
-    await api.upsert('lager_bestand',{produkt_id:pid,lagerort:lo,menge_kg:val,aktualisiert_am:new Date().toISOString()});
-    if(delta!==0){
-      const bres=await api.post('lager_buchungen',{produkt_id:pid,lagerort:lo,menge_kg:delta,notiz:'Inventur/Korrektur',kuerzel:meinKuerzel||null});
-      buchungen.unshift(bres[0]);
-    }
+    // Atomar: AD-Bestand setzen + LS-Bestand syncen + Log (mit bestand_nach) in einer Transaktion
+    const res=await api.rpc('rpc_inventur_set',{p_produkt_id:pid,p_lagerort:lo,p_val:val,p_kuerzel:meinKuerzel||null});
     const bidx=bestaende.findIndex(b=>b.produkt_id===pid&&b.lagerort===lo);
     if(bidx>=0) bestaende[bidx].menge_kg=val; else bestaende.push({produkt_id:pid,lagerort:lo,menge_kg:val});
-    const pname=produkte.find(p=>p.id===pid)?.name||'';
-    for(const prod of prodsFor(pname)){
-      const adGesamt=['Garage','Werkstatt'].reduce((s,l)=>s+(prod.id===pid&&l===lo?val:getMenge(prod.id,l)),0);
-      await lsBestandSetzen(prod.id,adGesamt);
-    }
+    const lidx=lsBestaende.findIndex(b=>b.produkt_id===pid);
+    if(lidx>=0) lsBestaende[lidx].menge_kg=Number(res.ls_neu); else lsBestaende.push({produkt_id:pid,menge_kg:Number(res.ls_neu)});
+    if(res.buchung) buchungen.unshift(res.buchung);
     document.getElementById('ist_'+vsid).value='';
+    const pname=produkte.find(p=>p.id===pid)?.name||'';
     sync('ok'); renderVerwaltung(document.getElementById('verwaltungSuche')?.value||''); renderProdukte();renderUebersicht();renderLog();renderDifferenz();updateUebersichtBadge();
-    toast(`✅ Inventur ${pname}: ${val} kg`);
-  }catch(e){sync('error');toast('❌ '+e.message);}
+    toast(`✅ Inventur ${pname}: ${val} ${einheitProd(pid)}`);
+  }catch(e){sync('error');toast('⛔ '+errMsg(e));}
+  finally { _busy = false; }
 }
 async function lsBestandSetzen(pid, val) {
   const check = await api._fetch(`${SUPABASE_URL}/rest/v1/lager_ls_bestand?produkt_id=eq.${pid}`, {});
@@ -1173,18 +1234,18 @@ async function lsBestandSetzen(pid, val) {
   if(idx>=0) lsBestaende[idx].menge_kg=val; else lsBestaende.push({produkt_id:pid,menge_kg:val});
 }
 async function eintragEingang(pid, menge, zielLo='Garage', lsNr='') {
-  const notiz=lsNr?`Eingang/Anlieferung · LS: ${lsNr}`:'Eingang/Anlieferung';
-  const neuerAD=getMenge(pid,zielLo)+menge;
-  await api.upsert('lager_bestand',{produkt_id:pid,lagerort:zielLo,menge_kg:neuerAD,aktualisiert_am:new Date().toISOString()});
-  const bres=await api.post('lager_buchungen',{produkt_id:pid,lagerort:zielLo,menge_kg:menge,notiz,kuerzel:meinKuerzel||null});
-  buchungen.unshift(bres[0]);
-  const bidx=bestaende.findIndex(b=>b.produkt_id===pid&&b.lagerort===zielLo);
-  if(bidx>=0) bestaende[bidx].menge_kg=neuerAD; else bestaende.push({produkt_id:pid,lagerort:zielLo,menge_kg:neuerAD});
-  const pnameEin=produkte.find(p=>p.id===pid)?.name||'';
-  for(const prod of prodsFor(pnameEin)){
-    const lsAlt=getLsBestand(prod.id)||0;
-    await lsBestandSetzen(prod.id,lsAlt+(prod.id===pid?menge:0));
-  }
+  // Atomar auf dem Server: AD-Bestand + LS-Bestand + Log in einer Transaktion
+  const res = await api.rpc('rpc_eingang', {
+    p_produkt_id: pid, p_menge: Number(menge), p_lagerort: zielLo,
+    p_ls_nr: lsNr || null, p_kuerzel: meinKuerzel || null
+  });
+  const b = res.buchung;
+  const bidx = bestaende.findIndex(x => x.produkt_id===pid && x.lagerort===zielLo);
+  if (bidx>=0) bestaende[bidx].menge_kg = Number(b.bestand_nach); else bestaende.push({ produkt_id:pid, lagerort:zielLo, menge_kg:Number(b.bestand_nach) });
+  const lidx = lsBestaende.findIndex(x => x.produkt_id===pid);
+  if (lidx>=0) lsBestaende[lidx].menge_kg = Number(res.ls_neu); else lsBestaende.push({ produkt_id:pid, menge_kg:Number(res.ls_neu) });
+  buchungen.unshift(b);
+  return b;
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1203,9 +1264,34 @@ async function doLogin() {
     if(!r.ok) throw new Error(data.error_description||data.msg||'Login fehlgeschlagen');
     authToken=data.access_token;
     localStorage.setItem('lager_token',authToken); localStorage.setItem('lager_refresh',data.refresh_token); localStorage.setItem('lager_token_exp',Date.now()+(data.expires_in*1000));
-    hideLogin(); await init(); renderVerwaltung();
+    hideLogin(); await init(); renderVerwaltung(); planTokenRefresh();
   }catch(e){errEl.textContent='❌ '+e.message;errEl.style.display='block';}
 }
+// Proaktiver Token-Refresh: plant sich nach jedem Refresh selbst neu (V22 —
+// vorher lief der Timer nur für die erste Token-Periode).
+let _tokenTimer = null;
+function planTokenRefresh() {
+  clearTimeout(_tokenTimer);
+  const exp = parseInt(localStorage.getItem('lager_token_exp')||'0');
+  if (!exp) return;
+  const wait = Math.max(exp - Date.now() - 5*60*1000, 10000);
+  _tokenTimer = setTimeout(async () => {
+    try { await refreshTokenIfNeeded(); } catch(e) { /* reaktiver Retry in _fetch fängt es */ }
+    planTokenRefresh();
+  }, wait);
+}
+
+// PWA kommt aus dem Standby zurück (iOS drosselt Timer im Hintergrund):
+// Token prüfen/erneuern und Daten frisch ziehen.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !authToken) return;
+  const exp = parseInt(localStorage.getItem('lager_token_exp')||'0');
+  if (Date.now() > exp - 5*60*1000) {
+    refreshTokenIfNeeded().then(planTokenRefresh).catch(()=>{});
+  }
+  refreshData();
+});
+
 async function checkSession() {
   const token=localStorage.getItem('lager_token'), refresh=localStorage.getItem('lager_refresh'), exp=parseInt(localStorage.getItem('lager_token_exp')||'0');
   if(token&&Date.now()<exp){
@@ -1213,26 +1299,12 @@ async function checkSession() {
     hideLogin();
     await init();
     renderVerwaltung();
-    // Proaktiver Hintergrund-Refresh: 5 Minuten vor Ablauf automatisch erneuern
-    const msLeft = exp - Date.now();
-    const refreshIn = Math.max(msLeft - 5 * 60 * 1000, 10000);
-    setTimeout(async () => {
-      try { await refreshTokenIfNeeded(); } catch(e) { /* wird beim nächsten API-Call behandelt */ }
-    }, refreshIn);
+    planTokenRefresh();
   } else if(refresh){
     try {
-      const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refresh})});
-      const data=await r.json(); if(!r.ok) throw new Error();
-      authToken=data.access_token;
-      localStorage.setItem('lager_token',authToken); localStorage.setItem('lager_refresh',data.refresh_token);
-      const newExp = Date.now()+(data.expires_in*1000);
-      localStorage.setItem('lager_token_exp', newExp);
+      await refreshTokenIfNeeded(); // eine gemeinsame Refresh-Logik (statt Duplikat)
       hideLogin(); await init(); renderVerwaltung();
-      // Auch hier proaktiver Refresh planen
-      const refreshIn = Math.max(data.expires_in*1000 - 5*60*1000, 10000);
-      setTimeout(async () => {
-        try { await refreshTokenIfNeeded(); } catch(e) {}
-      }, refreshIn);
+      planTokenRefresh();
     }catch(e){localStorage.removeItem('lager_token');localStorage.removeItem('lager_refresh');localStorage.removeItem('lager_token_exp');showLogin();}
   } else { showLogin(); }
 }
@@ -1241,9 +1313,10 @@ function doLogout() { authToken=null; localStorage.removeItem('lager_token'); lo
 // ══════════════════════════════════════════════════════════
 // LS AUSTRAG
 // ══════════════════════════════════════════════════════════
-function renderLS(filterQ='') {
+function renderLS(filterQ) {
   const activeId=document.activeElement?.id, el=document.getElementById('lsContent');
   if(!el) return;
+  filterQ = document.getElementById('lsSuche')?.value || '';
   const names=uniqueNames().filter(name=>{
     if(filterQ&&!norm(name).includes(norm(filterQ)))return false;
     // null = noch nie Inventur gemacht → ausblenden
@@ -1255,19 +1328,19 @@ function renderLS(filterQ='') {
   const offene=[...document.querySelectorAll('.ls-pc.open')].map(c=>c.id);
   const hatInventur=uniqueNames().some(n=>getLsBestandName(n)!==null);
   el.innerHTML=`
-    <div class="search-wrap" style="margin-top:12px;"><span class="search-icon">🔍</span><input type="search" class="search-input" id="lsSuche" value="${filterQ}" oninput="renderLS(this.value)" placeholder="Produkt suchen…" data-focus="1"></div>
     ${!hatInventur?`<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px 14px;margin-bottom:10px;font-size:13px;color:#b45309;">⚠️ Noch keine Inventur. Bitte zuerst in <strong>Verwaltung → SET</strong> Bestände erfassen.</div>`:''}
     ${names.map(name=>{
-      const prods=prodsFor(name), lsKgGes=getLsBestandName(name)??0, isLow=lsKgGes<=0;
+      const prods=prodsFor(name), lsKgGes=getLsBestandName(name)??0, isLow=lsKgGes<=0, einheitN=einheitName(name);
       const cardId='lspc_'+norm(name);
-      const chips=prods.map(p=>{const lsBst=getLsBestand(p.id)??0,kan=p.gebinde_kg?(lsBst/p.gebinde_kg).toFixed(1):'–',low=lsBst<=0;return`<span class="lchip" style="background:${low?'#fef2f2':'#fff7ed'};border-color:${low?'#fca5a5':'#fcd34d'};color:${low?'#b91c1c':'#b45309'};"><span class="lchip-dot"></span>📝 <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}kg</span> ${lsBst} kg <span style="opacity:0.6;font-size:10px;">(${kan} Geb.)</span></span>`;}).join('');
+      const chips=prods.map(p=>{const einheitP=einheitProd(p.id);const lsBst=getLsBestand(p.id)??0,kan=p.gebinde_kg?(lsBst/p.gebinde_kg).toFixed(1):'–',low=lsBst<=0;return`<span class="lchip" style="background:${low?'#fef2f2':'#fff7ed'};border-color:${low?'#fca5a5':'#fcd34d'};color:${low?'#b91c1c':'#b45309'};"><span class="lchip-dot"></span>📝 <span style="opacity:0.5;font-size:10px;">${p.gebinde_kg}${einheitP}</span> ${lsBst} ${einheitP} <span style="opacity:0.6;font-size:10px;">(${kan} Geb.)</span></span>`;}).join('');
       const rows=prods.map(p=>{
+        const einheitP=einheitProd(p.id);
         const lsBst=getLsBestand(p.id)??0,kan=p.gebinde_kg?(lsBst/p.gebinde_kg).toFixed(1):'–';
         const sid=('ls_'+p.id).replace(/[^a-zA-Z0-9]/g,'_');
         return`<div style="padding:14px;border-bottom:1px solid #e0f2fe;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;color:#475569;">${p.gebinde_kg} KG GEBINDE</span><span style="font-family:'DM Mono',monospace;font-size:13px;color:${lsBst<=0?'#b91c1c':'#b45309'};font-weight:500;">LS-Bestand: ${lsBst} kg (${kan} Geb.)</span></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:13px;letter-spacing:1px;color:#475569;">${p.gebinde_kg} ${einheitP.toUpperCase()} GEBINDE</span><span style="font-family:'DM Mono',monospace;font-size:13px;color:${lsBst<=0?'#b91c1c':'#b45309'};font-weight:500;">LS-Bestand: ${lsBst} ${einheitP} (${kan} Geb.)</span></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-            <div class="f" style="margin:0;"><label>Menge (kg) — <span id="${sid}_sign_label" style="color:#b91c1c;">Entnahme (−)</span></label><div style="display:flex;gap:6px;align-items:center;"><button id="${sid}_sign" onclick="lsToggleSign('${sid}')" style="width:42px;height:42px;border-radius:8px;border:1px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;cursor:pointer;flex-shrink:0;">−</button><input type="number" id="${sid}_menge" placeholder="z.B. ${p.gebinde_kg}" step="0.5" style="flex:1;min-width:0;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('${sid}_datum')?.focus();}"></div></div>
+            <div class="f" style="margin:0;"><label>Menge (${einheitP}) — <span id="${sid}_sign_label" style="color:#b91c1c;">Entnahme (−)</span></label><div style="display:flex;gap:6px;align-items:center;"><button id="${sid}_sign" onclick="lsToggleSign('${sid}')" style="width:42px;height:42px;border-radius:8px;border:1px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;cursor:pointer;flex-shrink:0;">−</button><input type="number" id="${sid}_menge" placeholder="z.B. ${p.gebinde_kg}" step="0.5" style="flex:1;min-width:0;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('${sid}_datum')?.focus();}"></div></div>
             <div class="f" style="margin:0;"><label>LS Datum (optional)</label><input type="date" id="${sid}_datum" style="width:100%;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('${sid}_kunde')?.focus();}"></div>
           </div>
           <div class="f" style="margin-bottom:8px;"><label>Kunde</label><div style="position:relative;"><input type="text" id="${sid}_kunde" placeholder="Kunde eingeben…" autocomplete="off" oninput="lsKundeSuche(this.value,'${sid}_kundelist')" style="width:100%;background:var(--input-bg);border:1px solid #7dd3fc;border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;outline:none;" onkeydown="if(event.key==='Enter'){event.preventDefault();lsAustragSpeichernDirekt('${p.id}','${sid}',${p.gebinde_kg});}"><div id="${sid}_kundelist" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1px solid #7dd3fc;border-top:none;border-radius:0 0 8px 8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:160px;overflow-y:auto;"></div></div></div>
@@ -1278,7 +1351,7 @@ function renderLS(filterQ='') {
         <div class="pc-bar" style="background:${isLow?'#b91c1c':'#f59e0b'};"></div>
         <div class="pc-header" onclick="this.parentElement.classList.toggle('open')">
           <div class="pc-name">${name}</div>
-          <div><div class="pc-total-kg" style="color:${isLow?'#b91c1c':'#b45309'}">${lsKgGes} kg</div><div class="pc-total-rw">📝 LS-Bestand</div></div>
+          <div><div class="pc-total-kg" style="color:${isLow?'#b91c1c':'#b45309'}">${lsKgGes} ${einheitN}</div><div class="pc-total-rw">📝 LS-Bestand</div></div>
           <span class="chev">▼</span>
         </div>
         <div class="chip-row">${chips||'<span style="font-size:12px;color:#94a3b8">Kein LS-Bestand</span>'}</div>
@@ -1286,12 +1359,13 @@ function renderLS(filterQ='') {
       </div>`;
     }).join('')}
     <div class="sl" style="margin-top:14px;">Letzte Einträge</div>
-    ${lsAustraege.length?`<div style="display:flex;flex-direction:column;gap:8px;">${lsAustraege.slice(0,20).map(ls=>{const p=produkte.find(p=>p.id===ls.produkt_id),lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;const m=Number(ls.menge_kg),pos=m>0,boxBg=pos?'#f0fdf4':'#fef2f2',boxBd=pos?'#86efac':'#fca5a5',boxCol=pos?'#15803d':'#b91c1c';return`<div style="background:#fff;border:1px solid #bae6fd;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);display:flex;align-items:center;gap:12px;"><div style="background:${boxBg};border:1px solid ${boxBd};border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:${boxCol};white-space:nowrap;">${pos?'+':''}${m} kg</div><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#0f172a;">${p?p.name:'–'}</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:#0f172a;margin-top:2px;">${ls.kunde}${ls.kuerzel?` <span style="font-size:11px;font-weight:400;color:#64748b;">· ${ls.kuerzel}</span>`:''}</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;margin-top:1px;">${fmtDatum(ls.erstellt_am)}${lsDat?' · LS vom '+lsDat:''}</div></div><span style="background:${boxBg};border:1px solid ${boxBd};border-radius:6px;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:${boxCol};white-space:nowrap;">${pos?'Korrektur':'LS'}</span></div>`;}).join('')}</div>`:'<div class="empty">Noch keine LS Austraege</div>'}`;
+    ${lsAustraege.length?`<div style="display:flex;flex-direction:column;gap:8px;">${lsAustraege.slice(0,20).map(ls=>{const p=produkte.find(p=>p.id===ls.produkt_id),einheitLs=einheitProd(ls.produkt_id),lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;const m=Number(ls.menge_kg),pos=m>0,boxBg=pos?'#f0fdf4':'#fef2f2',boxBd=pos?'#86efac':'#fca5a5',boxCol=pos?'#15803d':'#b91c1c';return`<div style="background:#fff;border:1px solid #bae6fd;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.07);display:flex;align-items:center;gap:12px;"><div style="background:${boxBg};border:1px solid ${boxBd};border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:${boxCol};white-space:nowrap;">${pos?'+':''}${m} ${einheitLs}</div><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:16px;color:#0f172a;">${p?p.name:'–'}</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:#0f172a;margin-top:2px;">${ls.kunde}${ls.kuerzel?` <span style="font-size:11px;font-weight:400;color:#64748b;">· ${ls.kuerzel}</span>`:''}</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:#94a3b8;margin-top:1px;">${fmtDatum(ls.erstellt_am)}${lsDat?' · LS vom '+lsDat:''}</div></div><span style="background:${boxBg};border:1px solid ${boxBd};border-radius:6px;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:${boxCol};white-space:nowrap;">${pos?'Korrektur':'LS'}</span></div>`;}).join('')}</div>`:'<div class="empty">Noch keine LS Austraege</div>'}`;
   setTimeout(()=>{offene.forEach(id=>{const c=document.getElementById(id);if(c)c.classList.add('open');});if(scrollEl)scrollEl.scrollTop=scrollTop;if(activeId){const el2=document.getElementById(activeId);if(el2&&(el2.tagName==='INPUT'||el2.tagName==='SELECT')){el2.focus();if(el2.type==='search'||el2.type==='text')el2.setSelectionRange(el2.value.length,el2.value.length);}}},0);
 }
 function lsKundeSuche(q,listId){const list=document.getElementById(listId);if(!list)return;const matches=kunden.filter(k=>k.name.toLowerCase().includes(q.toLowerCase()));list.innerHTML=matches.slice(0,8).map(k=>`<div onclick="document.getElementById('${listId}').previousElementSibling.value='${k.name}';document.getElementById('${listId}').style.display='none';" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #e0f2fe;font-family:'Barlow',sans-serif;font-size:14px;color:#0f172a;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background=''">${k.name}</div>`).join('');list.style.display=matches.length?'block':'none';}
 function lsToggleSign(sid){const btn=document.getElementById(sid+'_sign'),lbl=document.getElementById(sid+'_sign_label');if(!btn)return;if(btn.textContent==='−'){btn.textContent='+';btn.style.background='#f0fdf4';btn.style.borderColor='#86efac';btn.style.color='#15803d';if(lbl){lbl.textContent='Eingang (+)';lbl.style.color='#15803d';}}else{btn.textContent='−';btn.style.background='#fef2f2';btn.style.borderColor='#fca5a5';btn.style.color='#b91c1c';if(lbl){lbl.textContent='Entnahme (−)';lbl.style.color='#b91c1c';}}}
 async function lsAustragSpeichernDirekt(pid,sid,gebinde){
+  const einheitP=einheitProd(pid);
   const mengeInp=document.getElementById(sid+'_menge'),datumInp=document.getElementById(sid+'_datum'),kundeInp=document.getElementById(sid+'_kunde'),signBtn=document.getElementById(sid+'_sign');
   const menge=parseFloat(mengeInp?.value),kunde=kundeInp?.value.trim(),lsDatum=datumInp?.value||null,istEingang=signBtn&&signBtn.textContent==='+';
   if(isNaN(menge)||menge<=0){toast('⚠️ Bitte Menge eingeben');mengeInp?.focus();return;}
@@ -1310,33 +1384,52 @@ async function lsAustragSpeichernDirekt(pid,sid,gebinde){
     return;
   }
   if (!istEingang && lsAktuell <= 0) {
-    toast(`⛔ LS-Bestand ist 0 kg — nichts mehr zum Austragen`);
+    toast(`⛔ LS-Bestand ist 0 ${einheitP} — nichts mehr zum Austragen`);
     return;
   }
   if (!istEingang && lsAktuell - menge < 0) {
-    toast(`⛔ Nicht möglich: LS-Bestand ${lsAktuell} kg, Entnahme ${menge} kg — zu viel`);
+    toast(`⛔ Nicht möglich: LS-Bestand ${lsAktuell} ${einheitP}, Entnahme ${menge} ${einheitP} — zu viel`);
     return;
   }
 
+  if (_busy) return;
+  _busy = true;
   sync('syncing');
   try {
-    const delta=istEingang?menge:-menge, neuerLsBestand=lsAktuell+delta;
-    await lsBestandSetzen(pid,neuerLsBestand);
-    const res=await api.post('lager_ls_austrag',{produkt_id:pid,menge_kg:Math.abs(menge)*(istEingang?1:-1),kunde,kuerzel:meinKuerzel||null,ls_datum:lsDatum,ls_bestand_nach:neuerLsBestand});
-    lsAustraege.unshift(res[0]);
+    // Atomar auf dem Server: LS-Bestand + Austrag-Zeile (mit ls_bestand_nach) in einer Transaktion.
+    // Serverseitige Prüfungen (Inventur vorhanden, genug Bestand) gelten verbindlich —
+    // die Client-Checks oben sind nur schnelles Feedback.
+    const row = await api.rpc('rpc_ls_austrag', {
+      p_produkt_id: pid, p_delta: istEingang ? menge : -menge,
+      p_kunde: kunde, p_kuerzel: meinKuerzel || null, p_ls_datum: lsDatum
+    });
+    const neuerLsBestand = Number(row.ls_bestand_nach);
+    const lidx = lsBestaende.findIndex(b => b.produkt_id === pid);
+    if (lidx>=0) lsBestaende[lidx].menge_kg = neuerLsBestand; else lsBestaende.push({ produkt_id: pid, menge_kg: neuerLsBestand });
+    lsAustraege.unshift(row);
     if(!kunden.find(k=>k.name.toLowerCase()===kunde.toLowerCase())){try{const kr=await api.post('lager_kunden',{name:kunde});kunden.push(kr[0]);kunden.sort((a,b)=>a.name.localeCompare(b.name));}catch(e){}}
     if(mengeInp)mengeInp.value='';if(datumInp)datumInp.value='';if(kundeInp)kundeInp.value='';
     sync('ok');renderLS(document.getElementById('lsSuche')?.value||'');renderDifferenz();
     const pname=produkte.find(p=>p.id===pid)?.name||'';
-    toast(`📝 LS: ${istEingang?'+':'−'}${menge} kg ${pname} → ${kunde} (Rest: ${neuerLsBestand} kg)`);
-  }catch(e){sync('error');toast('❌ '+e.message);}
+    toast(`📝 LS: ${istEingang?'+':'−'}${menge} ${einheitP} ${pname} → ${kunde} (Rest: ${neuerLsBestand} ${einheitP})`);
+  }catch(e){sync('error');toast('⛔ '+errMsg(e));}
+  finally { _busy = false; }
 }
 
 // ══════════════════════════════════════════════════════════
 // DIFFERENZ
 // ══════════════════════════════════════════════════════════
-function renderDifferenz(filterQ='',nurMitDiff=false){
+function renderDifferenz(filterQ, nurMitDiff){
   const el=document.getElementById('differenzContent');if(!el)return;
+  filterQ = document.getElementById('differenzSuche')?.value || '';
+  const btn = document.getElementById('diffFilterBtn');
+  nurMitDiff = btn?.dataset.active === '1';
+  // Button-Optik hier zentral synchron halten (Button liegt seit V23 statisch außerhalb)
+  if (btn) {
+    btn.style.border = nurMitDiff ? '1px solid #fff' : '1px solid rgba(255,255,255,0.4)';
+    btn.style.background = nurMitDiff ? '#fff' : 'rgba(255,255,255,0.15)';
+    btn.style.color = nurMitDiff ? 'var(--surface2)' : '#fff';
+  }
   const alleNames=uniqueNames().filter(name=>{
     if(filterQ&&!norm(name).includes(norm(filterQ)))return false;
     const lagerKg=gesamtKg(name),lsKg=getLsBestandName(name);
@@ -1345,17 +1438,15 @@ function renderDifferenz(filterQ='',nurMitDiff=false){
     return lagerKg>0||lsKg!==null;
   });
   el.innerHTML=`
-    <div class="search-wrap" style="margin-top:12px;"><span class="search-icon">🔍</span><input type="search" class="search-input" id="differenzSuche" value="${filterQ}" oninput="renderDifferenz(this.value,document.getElementById('diffFilterBtn').dataset.active==='1')" placeholder="Produkt suchen…" data-focus="1"></div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;"><button id="diffFilterBtn" data-active="${nurMitDiff?'1':'0'}" onclick="this.dataset.active=this.dataset.active==='1'?'0':'1';renderDifferenz(document.getElementById('differenzSuche').value,this.dataset.active==='1')" style="padding:6px 14px;border-radius:20px;border:1px solid ${nurMitDiff?'#fff':'rgba(255,255,255,0.4)'};background:${nurMitDiff?'#fff':'rgba(255,255,255,0.15)'};color:${nurMitDiff?'var(--surface2)':'#fff'};font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">⚠️ Nur mit Differenz</button></div>
-    <div style="background:#e0f2fe;border:1px solid #7dd3fc;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#1e3a5f;">ℹ️ <strong>Außendienst</strong> = Lagerbestand · <strong>Innendienst</strong> = LS-Bestand · Rot = Differenz</div>
     ${alleNames.length?alleNames.map(name=>{
+      const einheitN=einheitName(name);
       const lagerKg=gesamtKg(name),lsKg=getLsBestandName(name)??0,differenz=lagerKg-lsKg,hatDiff=differenz!==0;
       const diffColor=differenz>0?'#b45309':differenz<0?'#b91c1c':'#15803d';
       const diffBg=differenz>0?'#fffbeb':differenz<0?'#fef2f2':'#f0fdf4';
       const diffBorder=differenz>0?'#fcd34d':differenz<0?'#fca5a5':'#86efac';
       const lsEntries=lsAustraege.filter(ls=>{const p=produkte.find(p=>p.id===ls.produkt_id);return p&&p.name===name;});
       const nameId=name.replace(/[^a-zA-Z0-9]/g,'_');
-      const lsZeile=ls=>{const lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;const m=Number(ls.menge_kg),pos=m>0;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;"><span style="font-family:'DM Mono',monospace;font-size:13px;color:${pos?'#15803d':'#b91c1c'};min-width:60px;">${pos?'+':''}${m} kg</span><span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#0f172a;">${ls.kunde}</span><span style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#94a3b8;text-align:right;line-height:1.25;">${fmtDatum(ls.erstellt_am)}${lsDat?'<br>LS: '+lsDat:''}${ls.kuerzel?' · '+ls.kuerzel:''}</span></div>`;};
+      const lsZeile=ls=>{const lsDat=ls.ls_datum?fmtDatumKurz(ls.ls_datum):null;const m=Number(ls.menge_kg),pos=m>0;return`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f1f5f9;"><span style="font-family:'DM Mono',monospace;font-size:13px;color:${pos?'#15803d':'#b91c1c'};min-width:60px;">${pos?'+':''}${m} ${einheitN}</span><span style="flex:1;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#0f172a;">${ls.kunde}</span><span style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#94a3b8;text-align:right;line-height:1.25;">${fmtDatum(ls.erstellt_am)}${lsDat?'<br>LS: '+lsDat:''}${ls.kuerzel?' · '+ls.kuerzel:''}</span></div>`;};
       const lsRest=lsEntries.slice(5);
       const lsEntriesHTML=lsEntries.length?`<div style="padding:10px 14px;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:6px;">LS Einträge <span style="color:#94a3b8;font-weight:400;">(${lsEntries.length})</span></div>${lsEntries.slice(0,5).map(lsZeile).join('')}${lsRest.length?`<div id="lsmore_${nameId}" style="display:none;">${lsRest.map(lsZeile).join('')}</div><button onclick="var d=document.getElementById('lsmore_${nameId}');var sh=d.style.display==='none';d.style.display=sh?'block':'none';this.textContent=sh?'▴ weniger anzeigen':'▾ ${lsRest.length} weitere anzeigen';" style="background:none;border:none;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;color:#0284c7;padding:8px 0;">▾ ${lsRest.length} weitere anzeigen</button>`:''}</div>`:'';
       return`<div style="background:#fff;border:${hatDiff?'2px solid #fca5a5':'1px solid #bae6fd'};border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.10);margin-bottom:10px;">
@@ -1364,17 +1455,16 @@ function renderDifferenz(filterQ='',nurMitDiff=false){
           <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:20px;color:#0f172a;margin-bottom:10px;">${name}</div>
           <div style="background:${diffBg};border:2px solid ${diffBorder};border-radius:8px;padding:10px;text-align:center;margin-bottom:8px;">
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${hatDiff?diffColor:'#64748b'};margin-bottom:4px;">Außendienst − Innendienst = Differenz</div>
-            <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:${diffColor};">${lagerKg} − ${lsKg} = ${differenz>0?'+':''}${differenz} kg</div>
-            <div style="font-size:11px;color:#64748b;margin-top:4px;">${differenz>0?'⚠️ '+differenz+' kg mehr im Lager als auf LS — LS fehlt!':differenz<0?'🔴 '+Math.abs(differenz)+' kg mehr auf LS als im Lager — Fehler!':'✅ Lager und LS stimmen überein'}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:${diffColor};">${lagerKg} − ${lsKg} = ${differenz>0?'+':''}${differenz} ${einheitN}</div>
+            <div style="font-size:11px;color:#64748b;margin-top:4px;">${differenz>0?'⚠️ '+differenz+' '+einheitN+' mehr im Lager als auf LS — LS fehlt!':differenz<0?'🔴 '+Math.abs(differenz)+' '+einheitN+' mehr auf LS als im Lager — Fehler!':'✅ Lager und LS stimmen überein'}</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;">
-            ${prodsFor(name).map(p=>{const adKg=getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt'),lsP=getLsBestand(p.id)??0,diffP=adKg-lsP,diffCol=diffP>0?'#b45309':diffP<0?'#b91c1c':'#15803d';return`<div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:6px;align-items:center;background:#f8fafc;border:1px solid #e0f2fe;border-radius:8px;padding:8px 10px;"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px;color:#475569;white-space:nowrap;">${p.gebinde_kg}kg</span><div style="text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--surface2);">${adKg} kg</div><div style="font-size:9px;color:#94a3b8;">📦 G:${getMenge(p.id,'Garage')} W:${getMenge(p.id,'Werkstatt')}</div></div><div style="text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:#b91c1c;">${lsP} kg</div><div style="font-size:9px;color:#94a3b8;">📝 LS</div></div><div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:${diffCol};">${diffP>0?'+':''}${diffP}</div><div style="font-size:9px;color:#94a3b8;">Diff</div></div></div>`;}).join('')}
+            ${prodsFor(name).map(p=>{const einheitP=einheitProd(p.id);const adKg=getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt'),lsP=getLsBestand(p.id)??0,diffP=adKg-lsP,diffCol=diffP>0?'#b45309':diffP<0?'#b91c1c':'#15803d';return`<div style="display:grid;grid-template-columns:auto 1fr 1fr auto;gap:6px;align-items:center;background:#f8fafc;border:1px solid #e0f2fe;border-radius:8px;padding:8px 10px;"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:12px;letter-spacing:1px;color:#475569;white-space:nowrap;">${p.gebinde_kg}${einheitP}</span><div style="text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--surface2);">${adKg} ${einheitP}</div><div style="font-size:9px;color:#94a3b8;">📦 G:${getMenge(p.id,'Garage')} W:${getMenge(p.id,'Werkstatt')}</div></div><div style="text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:14px;color:#b91c1c;">${lsP} ${einheitP}</div><div style="font-size:9px;color:#94a3b8;">📝 LS</div></div><div style="text-align:right;"><div style="font-family:'DM Mono',monospace;font-size:14px;font-weight:500;color:${diffCol};">${diffP>0?'+':''}${diffP}</div><div style="font-size:9px;color:#94a3b8;">Diff</div></div></div>`;}).join('')}
           </div>
         </div>
         ${lsEntriesHTML}
       </div>`;
     }).join(''):'<div class="empty">Keine Einträge vorhanden</div>'}`;
-  if(filterQ!==''){setTimeout(()=>{const sf=document.getElementById('differenzSuche');if(sf){sf.focus();sf.setSelectionRange(sf.value.length,sf.value.length);}},0);}
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1407,7 +1497,7 @@ function renderHilfe(){
           <strong>Auto-Reset:</strong> Nach einem Eingang (Anlieferung) gilt die alte Notiz als erledigt — beim nächsten Mal taucht das Produkt mit leerem Feld auf.
         </div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">SET / Inventur</div>
-        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">kg-Wert eingeben → SET → setzt Lager UND LS-Bestand gleichzeitig</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:12px;padding-left:12px;">Wert eingeben (kg oder Stk, je nach Produkt) → SET → setzt Lager UND LS-Bestand gleichzeitig</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#475569;margin-bottom:6px;">Eingang (Anlieferung)</div>
         <div style="font-size:12px;color:#475569;padding-left:12px;">Menge + Lagerort → ＋ Einbuchen · Addiert zu Lager UND LS · Setzt Bestellnotiz auf "erledigt"</div>
       </div>
@@ -1428,7 +1518,7 @@ function renderHilfe(){
         <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">📝</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#b45309;">Innendienst</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Büro trägt Lieferscheine ein</div></div>
         <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">⚖️</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#15803d;">Diff = 0</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Alles stimmt überein ✅</div></div>
       </div>
-      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V21:</strong> Bestellnotizen für ALLE Nutzer sichtbar — Laden jetzt über Notiz-Präfix statt menge_kg, plus Abgleich mit dem Log (was im Log steht, erscheint auch in Nachbestellen) · V20: Differenz volle LS-Historie ausklappbar · V19: Tab-Wechsel sofort — Refresh wird bei laufendem Fetch vorgemerkt statt verworfen (kein zweites Tippen mehr nötig) · V18: Differenz-Meta doppelt groß & fett · V17: LS-Korrektur grün/„+" · V16: Notizen/Nachbestellen pro Gebinde, Über-Entnahme blockiert · V15: Notiz-Fix · V14: LS Austrag Fix · V13: Tab-Refresh</div>
+      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V24:</strong> Neue Einheit pro Produkt (kg oder Stück) — für Dosierbehälter & andere zählbare Artikel neben chemischen Produkten. Auswahl beim Anlegen/Bearbeiten, alle Anzeigen (Produkte, Übersicht, Verwaltung, Log, LS, Differenz) zeigen die richtige Einheit · V23: Suchfelder liegen außerhalb des neu gerenderten Bereichs — kein Bildschirm-Sprung/Tastatur-Umschalten mehr · V22: Log zeigt Bestand nach jeder Buchung, atomare Server-Buchungen, Doppel-Tap-Schutz</div>
     </div></div>`;
 }
 
