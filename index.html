@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Lagerchemie V24</title>
+<title>Lagerchemie V25</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -246,12 +246,15 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <script>
   const SUPABASE_URL = 'https://loekjdetgppmxnwnwxkm.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tvSCErTdFX0L1HKb2h9HPw_7Xid0a0A';
-  const APP_VERSION = 'V24';
+  const APP_VERSION = 'V25';
   // Prefix für Bestellnotizen in lager_buchungen
   const BESTELL_PREFIX = '🗒️ Bestellnotiz: ';
   // Produkte, deren Kachel im Produkte-Tab in PAKETEN statt kg angezeigt wird
   // (reine Display-Umschaltung — gespeichert wird immer kg). Teilstring, normalisiert.
   const PAKET_ANZEIGE = ['dip slide'];
+  // Produkte, die im Produkte-Tab immer ganz oben stehen (meistgenutzte zuerst).
+  // Reihenfolge in der Liste = Reihenfolge oben. Teilstring, normalisiert.
+  const PINNED_OBEN = ['dip slide'];
 </script>
 
 <!-- UPDATE BANNER -->
@@ -264,7 +267,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 <div id="loginScreen" style="display:none; position:fixed; inset:0; background:#0369a1; z-index:9999; align-items:center; justify-content:center; padding:20px;">
   <div style="background:#fff; border-radius:16px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.25);">
     <div style="font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:24px; color:#0369a1; margin-bottom:4px;">
-      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span> <span id="loginVer" style="font-size:14px;color:#94a3b8;font-weight:400;">V24</span>
+      Lager<span style="font-weight:400;color:#7dd3fc">chemie</span> <span id="loginVer" style="font-size:14px;color:#94a3b8;font-weight:400;">V25</span>
     </div>
     <div style="font-family:'Barlow',sans-serif; font-size:13px; color:#64748b; margin-bottom:24px;">Bitte anmelden um fortzufahren</div>
     <div style="margin-bottom:12px;">
@@ -282,7 +285,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 
 <!-- HEADER -->
 <div class="header">
-  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V24</span></div>
+  <div class="logo">Lager<span>chemie</span> <span class="logo-ver">V25</span></div>
   <div class="sync-dot" id="syncDot"></div>
   <button onclick="doLogout()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:6px;padding:4px 10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.5px;cursor:pointer;">LOGOUT</button>
 </div>
@@ -502,6 +505,9 @@ function einheitProd(pid){ const p=produkte.find(p=>p.id===pid); return (p&&p.ei
 function einheitName(name){ const p=prodsFor(name)[0]; return (p&&p.einheit==='stk')?'Stk':'kg'; }
 // Produkt in Paketen statt kg anzeigen? (reine Display-Umschaltung, siehe PAKET_ANZEIGE)
 function zeigtPakete(name){ const n = norm(name); return PAKET_ANZEIGE.some(x => n.includes(norm(x))); }
+// Steht das Produkt ganz oben im Produkte-Tab? (siehe PINNED_OBEN)
+function istGepinnt(name){ const n = norm(name); return PINNED_OBEN.some(x => n.includes(norm(x))); }
+function pinIndex(name){ const n = norm(name); const i = PINNED_OBEN.findIndex(x => n.includes(norm(x))); return i===-1 ? PINNED_OBEN.length : i; }
 
 // ══════════════════════════════════════════════════════════
 // STATE
@@ -772,6 +778,9 @@ function renderProdukte() {
     if (aktFilter === 'niedrig') return prodsFor(name).some(p => { const rw = richtwertProd(p.id); return rw && (getMenge(p.id,'Garage')+getMenge(p.id,'Werkstatt')) < rw*0.5; });
     return true;
   });
+  // Gepinnte Produkte (PINNED_OBEN) immer zuerst — Array.sort ist stabil,
+  // der Rest bleibt in seiner bisherigen (alphabetischen) Reihenfolge.
+  names.sort((a, b) => pinIndex(a) - pinIndex(b));
 
   if (!names.length) { el.innerHTML='<div class="empty">Keine Produkte gefunden</div>'; return; }
 
@@ -1518,7 +1527,7 @@ function renderHilfe(){
         <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">📝</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#b45309;">Innendienst</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Büro trägt Lieferscheine ein</div></div>
         <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:20px;margin-bottom:4px;">⚖️</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:#15803d;">Diff = 0</div><div style="font-size:11px;color:#64748b;margin-top:4px;">Alles stimmt überein ✅</div></div>
       </div>
-      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V24:</strong> Neue Einheit pro Produkt (kg oder Stück) — für Dosierbehälter & andere zählbare Artikel neben chemischen Produkten. Auswahl beim Anlegen/Bearbeiten, alle Anzeigen (Produkte, Übersicht, Verwaltung, Log, LS, Differenz) zeigen die richtige Einheit · V23: Suchfelder liegen außerhalb des neu gerenderten Bereichs — kein Bildschirm-Sprung/Tastatur-Umschalten mehr · V22: Log zeigt Bestand nach jeder Buchung, atomare Server-Buchungen, Doppel-Tap-Schutz</div>
+      <div style="font-size:12px;color:#64748b;border-top:1px solid #e0f2fe;padding-top:10px;"><strong>V25:</strong> Dip-Slide im Schrank steht im Produkte-Tab jetzt immer ganz oben (meistgenutztes Produkt) · V24: Einheit pro Produkt (kg/Stück) · V23: Suchfelder liegen außerhalb des neu gerenderten Bereichs — kein Bildschirm-Sprung/Tastatur-Umschalten mehr · V22: Log zeigt Bestand nach jeder Buchung, atomare Server-Buchungen</div>
     </div></div>`;
 }
 
